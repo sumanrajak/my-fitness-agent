@@ -8,12 +8,19 @@ class Settings(BaseSettings):
     
     @property
     def FIREBASE_CREDENTIALS_PATH(self) -> str:
-        # Check Render's secret files location first
-        render_secret_path = "/etc/secrets/config/serviceAccountKey.json"
-        if os.path.exists(render_secret_path):
-            return render_secret_path
-        # Fall back to local path for development
-        return "config/serviceAccountKey.json"
+        # Check multiple possible locations for Render secret files
+        possible_paths = [
+            "/etc/secrets/config/serviceAccountKey.json",  # Render's secret directory
+            "/etc/secrets/serviceAccountKey.json",         # Alternate Render path
+            "config/serviceAccountKey.json",               # Local development
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+        
+        # If none exist, return the first path (will error with clear message)
+        return possible_paths[0]
 
     class Config:
         env_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
