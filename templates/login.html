@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fitness - Login</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center;">AI Fitness Coach</h1>
+        
+        <div class="form-toggle">
+            <button id="toggle-login" class="active-tab" onclick="switchForm('login')">Login</button>
+            <button id="toggle-register" onclick="switchForm('register')">Register</button>
+        </div>
+
+        <form id="login-form" action="/auth/login" method="POST">
+            <h3>Sign In</h3>
+            <label>Email Address:</label>
+            <input type="email" name="email" required>
+
+            <label>Password:</label>
+            <input type="password" name="password" required>
+
+            <button type="submit">Sign In</button>
+        </form>
+
+        <form id="register-form" action="/auth/register" method="POST" style="display: none;">
+            <h3>Create Account</h3>
+            <label>Email Address:</label>
+            <input type="email" name="email" required>
+
+            <label>Password:</label>
+            <input type="password" name="password" required minlength="6">
+
+            <button type="submit" style="background-color: #10b981;">Sign Up</button>
+        </form>
+    </div>
+
+    <script>
+        function switchForm(type) {
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const loginBtn = document.getElementById('toggle-login');
+            const registerBtn = document.getElementById('toggle-register');
+
+            if (type === 'login') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                loginBtn.classList.add('active-tab');
+                registerBtn.classList.remove('active-tab');
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                loginBtn.classList.remove('active-tab');
+                registerBtn.classList.add('active-tab');
+            }
+        }
+    </script>
+</body>
+</html>

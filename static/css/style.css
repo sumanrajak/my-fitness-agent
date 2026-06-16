@@ -1,0 +1,140 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #f4f6f9;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+.container {
+    max-width: 600px;
+    margin: 40px auto;
+    background: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+.dashboard { max-width: 800px; }
+label { display: block; margin-top: 15px; font-weight: 600; }
+input, select, textarea {
+    width: 100%; padding: 10px; margin-top: 5px;
+    border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;
+}
+button {
+    background-color: #0070f3; color: white; padding: 12px; margin-top: 20px;
+    border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px;
+}
+button:hover { background-color: #0051b3; }
+.metrics-grid { display: flex; gap: 20px; margin: 20px 0; }
+.card { flex: 1; padding: 20px; border-radius: 6px; color: white; text-align: center; }
+.bg-blue { background-color: #0070f3; }
+.bg-green { background-color: #10b981; }
+blockquote { background: #f9f9f9; border-left: 5px solid #0070f3; padding: 15px; margin: 10px 0; font-style: italic; }
+.logout-btn { display: inline-block; margin-top: 20px; color: #ef4444; text-decoration: none; }
+
+
+.form-toggle {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+.form-toggle button {
+    flex: 1;
+    background: #e2e8f0;
+    color: #4a5568;
+    margin: 0;
+    border-radius: 0;
+    border: none;
+}
+.form-toggle button:first-child {
+    border-radius: 4px 0 0 4px;
+}
+.form-toggle button:last-child {
+    border-radius: 0 4px 4px 0;
+}
+.form-toggle button.active-tab {
+    background-color: #0070f3;
+    color: white;
+}
+
+.journey-badge {
+    background-color: #1e3a8a;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin: 15px 0;
+    display: inline-block;
+}
+.meal-input-group {
+    display: flex;
+    gap: 15px;
+}
+.meal-input-group div {
+    flex: 1;
+}
+.bg-red {
+    background-color: #ef4444;
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 12px;
+    }
+
+    .container {
+        max-width: 100%;
+        margin: 20px auto;
+        padding: 20px;
+    }
+
+    .dashboard {
+        max-width: 100%;
+    }
+
+    .metrics-grid,
+    .meal-input-group {
+        flex-direction: column;
+    }
+
+    .metrics-grid .card,
+    .meal-input-group div {
+        width: 100%;
+    }
+
+    .form-toggle {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .form-toggle button {
+        width: 100%;
+        margin-bottom: 0;
+        border-radius: 4px;
+    }
+
+    .logout-btn {
+        display: block;
+        margin-top: 20px;
+    }
+
+    .details-section,
+    .card,
+    .journey-badge {
+        padding: 18px;
+    }
+
+    button {
+        font-size: 15px;
+        padding: 12px;
+    }
+
+    .container h1,
+    .container h3 {
+        font-size: 1.2rem;
+    }
+
+    input,
+    select,
+    textarea {
+        font-size: 15px;
+    }
+}

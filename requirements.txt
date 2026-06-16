@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+jinja2
+python-multipart
+google-cloud-firestore
+firebase-admin
+google-genai
+pydantic-settings
+python-dotenv
