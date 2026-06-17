@@ -34,7 +34,7 @@ def analyze_user_fitness(profile_data: dict) -> dict:
     Provide a concise summary of insights.
     """
     
-    # Using the recommended 'gemini-2.5-flash' model for text tasks
+    # Using the supported Gemini model for text tasks
     response = client.models.generate_content(
         model='gemini-2.5-flash',
         contents=prompt,
@@ -52,18 +52,23 @@ def analyze_user_fitness(profile_data: dict) -> dict:
 class FoodEstimation(BaseModel):
     itemized_breakdown: str  # e.g., "Eggs (140 kcal), Toast (150 kcal)"
     estimated_calories: int  # e.g., 290
+    protein: int
+    fiber: int
+    carbs: int
 
 def estimate_food_calories(food_text: str) -> dict:
     """
     Uses Gemini 1.5 Flash to analyze a natural language food description
-    and return an estimated calorie count with an itemized breakdown.
+    and return an estimated calorie count with an itemized breakdown and macros.
     """
     prompt = f"""
-    You are an expert AI nutritionist and calorie estimator. 
+    You are an expert AI nutritionist and calorie estimator.
     Analyze the following meal description: '{food_text}'
     
-    Estimate the total calories as accurately as possible based on standard nutritional data.
-    Provide a brief, clean itemized breakdown text of the components and their individual calories.
+    Estimate the total calories as accurately as possible using standard nutritional data.
+    Provide a brief, clean itemized breakdown of the components and their individual calories.
+    Also estimate the total protein, fiber, and carbohydrates in grams for this meal.
+    Return valid JSON with keys: itemized_breakdown, estimated_calories, protein, fiber, carbs.
     """
     
     response = client.models.generate_content(
@@ -82,6 +87,56 @@ class WeeklyAnalysis(BaseModel):
     status_summary: str
     coach_verdict: str
     detailed_insights: str
+
+class ConsistencyReview(BaseModel):
+    status_evaluation: str
+    actionable_tip: str
+
+def analyze_consistency_review(user_data: dict, recent_summaries: list = None) -> dict:
+    """
+    Generates a quick coach-style consistency review for the user based on recent tracking.
+    """
+    target_calories = user_data.get('target_calories', 0)
+    recent_data = ""
+    if recent_summaries:
+        recent_data = "\n".join([
+            f"- {day['date']}: {day['total_consumed']} kcal, {day.get('logs_count', 0)} items"
+            for day in recent_summaries
+        ])
+
+    prompt = f"""
+    You are an expert fitness coach asked to evaluate a client's recent calorie tracking consistency.
+    Use the user's profile and intake data to provide a short assessment and one practical tip.
+
+    User Profile:
+    - Age: {user_data.get('age', 'N/A')}
+    - Sex: {user_data.get('sex', 'N/A')}
+    - Height: {user_data.get('height', 'N/A')} cm
+    - Current Weight: {user_data.get('weight', 'N/A')} kg
+    - Activity Level: {user_data.get('activity_level', 'N/A')}
+    - Target Calories: {target_calories} kcal
+    - Personal Context: {user_data.get('context', 'N/A')}
+
+    Recent Tracking:
+    {recent_data or 'No recent daily intake summary available.'}
+
+    Based on this information, return valid JSON with exactly two keys:
+    1. "status_evaluation" - a short statement about whether they are consistent with their goals.
+    2. "actionable_tip" - one practical recommendation for the next day or week.
+    """
+
+    response = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=ConsistencyReview,
+            temperature=0.25,
+        ),
+    )
+
+    return json.loads(response.text)
+
 
 def analyze_weekly_report(daily_summaries: list, target_daily: int, total_consumed: int, estimated_weight_loss: float, user_data: dict = None) -> dict:
     """

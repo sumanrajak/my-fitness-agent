@@ -9,6 +9,14 @@
 <body>
     <div class="container dashboard">
         <h1>Weekly Progress Report</h1>
+        <form method="GET" action="/onboard/weekly-report" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 18px;">
+            <input type="hidden" name="uid" value="{{ user.uid }}">
+            <label style="font-weight: 600; margin: 0;">From:</label>
+            <input type="date" name="start_date" value="{{ start_date }}" required style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
+            <label style="font-weight: 600; margin: 0;">To:</label>
+            <input type="date" name="end_date" value="{{ end_date }}" required style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
+            <button type="submit" style="background-color: #10b981; color: white; padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer;">Update Range</button>
+        </form>
         <p>Period: <strong>{{ start_date }}</strong> to <strong>{{ end_date }}</strong></p>
         
         <div style="margin: 20px 0;">

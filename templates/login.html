@@ -38,6 +38,15 @@
         </form>
     </div>
 
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loader-card">
+            <div class="loader-dot"></div>
+            <div class="loader-dot"></div>
+            <div class="loader-dot"></div>
+            <p>Loading, please wait...</p>
+        </div>
+    </div>
+
     <script>
         function switchForm(type) {
             const loginForm = document.getElementById('login-form');
@@ -57,6 +66,15 @@
                 registerBtn.classList.add('active-tab');
             }
         }
+
+        function showLoadingOverlay() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) overlay.classList.add('active');
+        }
+
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', showLoadingOverlay);
+        });
     </script>
 </body>
 </html>

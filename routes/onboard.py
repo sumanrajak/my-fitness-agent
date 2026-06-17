@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from config.settings import settings
 from services.firebase_service import save_user_profile, get_user_document, db
-from services.gemini_service import analyze_user_fitness, estimate_food_calories, analyze_weekly_report
+from services.gemini_service import analyze_user_fitness, estimate_food_calories, analyze_weekly_report, analyze_consistency_review
 router = APIRouter(prefix="/onboard", tags=["Onboarding & Dashboard"])
 templates = Jinja2Templates(directory="templates")
 
@@ -72,6 +72,30 @@ async def start_journey(uid: str = Form(...), start_date: str = Form(...)):
     
     return RedirectResponse(url=f"/onboard/dashboard?uid={uid}", status_code=303)
 
+@router.get("/reanalysis", response_class=HTMLResponse)
+async def reanalysis_page(request: Request, uid: str):
+    user_data = get_user_document(uid)
+    if not user_data:
+        return RedirectResponse(url="/")
+
+    return templates.TemplateResponse(
+        name="onboarding.html",
+        request=request,
+        context={
+            "uid": uid,
+            "email": user_data.get("email", ""),
+            "age": user_data.get("age", ""),
+            "sex": user_data.get("sex", ""),
+            "height": user_data.get("height", ""),
+            "weight": user_data.get("weight", ""),
+            "activity_level": user_data.get("activity_level", ""),
+            "context": user_data.get("context", ""),
+            "timeline": user_data.get("timeline", ""),
+            "title": "Reanalyze Your Goals",
+            "button_label": "Update Goals"
+        }
+    )
+
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page(request: Request, uid: str, date: str = None):
     user_data = get_user_document(uid)
@@ -83,7 +107,17 @@ async def dashboard_page(request: Request, uid: str, date: str = None):
         date = datetime.today().strftime('%Y-%m-%d')
         
     journey_status = {}
-    daily_log = {"breakfast": 0, "lunch": 0, "dinner": 0, "total_consumed": 0, "balance": user_data.get("target_calories", 0)}
+    daily_log = {
+        "breakfast": 0,
+        "lunch": 0,
+        "dinner": 0,
+        "total_consumed": 0,
+        "balance": user_data.get("target_calories", 0),
+        "total_protein": 0,
+        "total_fiber": 0,
+        "total_carbs": 0,
+        "logs": []
+    }
     
     # If the user has officially started their journey
     if "journey_start_date" in user_data:
@@ -106,7 +140,12 @@ async def dashboard_page(request: Request, uid: str, date: str = None):
         if log_doc.exists:
             daily_log = log_doc.to_dict()
             # Calculate remaining balance dynamically
-            daily_log["balance"] = user_data["target_calories"] - daily_log["total_consumed"]
+            daily_log["balance"] = user_data["target_calories"] - daily_log.get("total_consumed", 0)
+            # Summarize macros for the selected date
+            logs = daily_log.get("logs", [])
+            daily_log["total_protein"] = sum(item.get("protein", 0) for item in logs)
+            daily_log["total_fiber"] = sum(item.get("fiber", 0) for item in logs)
+            daily_log["total_carbs"] = sum(item.get("carbs", 0) for item in logs)
 
     
     return templates.TemplateResponse(
@@ -121,25 +160,30 @@ async def dashboard_page(request: Request, uid: str, date: str = None):
 )
 
 @router.get("/weekly-report", response_class=HTMLResponse)
-async def weekly_report(request: Request, uid: str, end_date: str = None):
+async def weekly_report(request: Request, uid: str, start_date: str = None, end_date: str = None):
     user_data = get_user_document(uid)
     if not user_data:
         return RedirectResponse(url="/")
     
     if not end_date:
         end_date = datetime.today().strftime('%Y-%m-%d')
-    
+    if not start_date:
+        start_date = (datetime.strptime(end_date, '%Y-%m-%d') - timedelta(days=6)).strftime('%Y-%m-%d')
+
+    start_dt = datetime.strptime(start_date, '%Y-%m-%d')
     end_dt = datetime.strptime(end_date, '%Y-%m-%d')
-    start_dt = end_dt - timedelta(days=6)
-    start_date = start_dt.strftime('%Y-%m-%d')
-    
-    # Fetch logs for the 7-day range
+    if end_dt < start_dt:
+        start_dt, end_dt = end_dt, start_dt
+        start_date, end_date = end_date, start_date
+
+    # Fetch logs for the selected date range
     logs_ref = db.collection("users").document(uid).collection("daily_tracker")
     docs = logs_ref.where("date", ">=", start_date).where("date", "<=", end_date).stream()
     
     # Initialize map to ensure all days are represented
     dates_map = {}
-    for i in range(7):
+    day_count = (end_dt - start_dt).days + 1
+    for i in range(day_count):
         d = (start_dt + timedelta(days=i)).strftime('%Y-%m-%d')
         dates_map[d] = {"date": d, "total_consumed": 0, "logs_count": 0}
 
@@ -154,7 +198,7 @@ async def weekly_report(request: Request, uid: str, end_date: str = None):
 
     daily_summaries = sorted(dates_map.values(), key=lambda x: x["date"])
     target_daily = user_data.get("target_calories", 0)
-    total_target = target_daily * 7
+    total_target = target_daily * day_count
     net_deficit = total_target - total_consumed
     est_loss = net_deficit / 7700.0  # Approx 7700 kcal deficit = 1kg
 
@@ -223,13 +267,19 @@ async def log_calories(
         "meal_type": meal_type,
         "input_text": food_description,
         "breakdown": breakdown,
-        "calories": estimated_kcal
+        "calories": estimated_kcal,
+        "protein": ai_result.get("protein", 0),
+        "fiber": ai_result.get("fiber", 0),
+        "carbs": ai_result.get("carbs", 0)
     }
 
     if log_doc.exists:
-        # Document exists: Increment total and append the new entry to the array list
+        # Document exists: Increment totals and append the new entry to the array list
         log_ref.update({
             "total_consumed": firestore.Increment(estimated_kcal),
+            "total_protein": firestore.Increment(ai_result.get("protein", 0)),
+            "total_fiber": firestore.Increment(ai_result.get("fiber", 0)),
+            "total_carbs": firestore.Increment(ai_result.get("carbs", 0)),
             "logs": firestore.ArrayUnion([new_log_entry])
         })
     else:
@@ -237,8 +287,41 @@ async def log_calories(
         log_data = {
             "date": date,
             "total_consumed": estimated_kcal,
+            "total_protein": ai_result.get("protein", 0),
+            "total_fiber": ai_result.get("fiber", 0),
+            "total_carbs": ai_result.get("carbs", 0),
             "logs": [new_log_entry]
         }
         log_ref.set(log_data)
         
     return RedirectResponse(url=f"/onboard/dashboard?uid={uid}&date={date}", status_code=303)
+
+@router.get("/ai-review")
+async def ai_review(uid: str):
+    user_data = get_user_document(uid)
+    if not user_data:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    end_date = datetime.today().strftime('%Y-%m-%d')
+    start_date = (datetime.today() - timedelta(days=6)).strftime('%Y-%m-%d')
+    logs_ref = db.collection("users").document(uid).collection("daily_tracker")
+    docs = logs_ref.where("date", ">=", start_date).where("date", "<=", end_date).stream()
+
+    recent_summaries = []
+    for doc in docs:
+        data = doc.to_dict()
+        recent_summaries.append({
+            "date": data.get("date"),
+            "total_consumed": data.get("total_consumed", 0),
+            "logs_count": len(data.get("logs", []))
+        })
+
+    try:
+        review = analyze_consistency_review(user_data=user_data, recent_summaries=recent_summaries)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI consistency review failed: {str(e)}")
+
+    return {
+        "status_evaluation": review.get("status_evaluation", "Unable to evaluate consistency."),
+        "actionable_tip": review.get("actionable_tip", "Keep logging regularly and stay consistent with meal balance.")
+    }
