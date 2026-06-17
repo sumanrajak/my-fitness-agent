@@ -14,6 +14,42 @@ class CalorieAnalysis(BaseModel):
     target_calories: int
     insights_summary: str
 
+# Primary + fallback Gemini models
+FALLBACK_MODELS = [
+    "gemini-3-flash",
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-2.5-flash",
+]
+
+
+def _generate_with_model_fallback(prompt: str, response_schema, temperature: float = 0.2, models: list | None = None) -> dict:
+    """Try the supplied Gemini models in order until one succeeds.
+
+    Returns the parsed JSON dict from the first successful response. Raises the last
+    exception if all models fail.
+    """
+    models = models or FALLBACK_MODELS
+    last_exc = None
+    for model in models:
+        try:
+            resp = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=response_schema,
+                    temperature=temperature,
+                ),
+            )
+            return json.loads(resp.text)
+        except Exception as e:
+            print(f"Gemini model {model} failed: {e}")
+            last_exc = e
+            continue
+    # If we reach here, all models failed
+    raise last_exc
+
 def analyze_user_fitness(profile_data: dict) -> dict:
     """
     Sends user details to Gemini using the new google-genai SDK 
@@ -34,20 +70,8 @@ def analyze_user_fitness(profile_data: dict) -> dict:
     Provide a concise summary of insights.
     """
     
-    # Using the supported Gemini model for text tasks
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=CalorieAnalysis,
-            temperature=0.2, # Lower temperature for more stable calculations
-        ),
-    )
-    
-    # The SDK parses it directly into the schema if requested, 
-    # but since it returns valid JSON matching our Pydantic object, we can safely parse it
-    return json.loads(response.text)
+    # Try multiple Gemini models (fallbacks) until one succeeds
+    return _generate_with_model_fallback(prompt, CalorieAnalysis, temperature=0.2)
 
 class FoodEstimation(BaseModel):
     itemized_breakdown: str  # e.g., "Eggs (140 kcal), Toast (150 kcal)"
@@ -71,17 +95,11 @@ def estimate_food_calories(food_text: str) -> dict:
     Return valid JSON with keys: itemized_breakdown, estimated_calories, protein, fiber, carbs.
     """
     
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=FoodEstimation,
-            temperature=0.1,  # Low temperature for objective calorie calculations
-        ),
-    )
-    
-    return json.loads(response.text)
+    try:
+        return _generate_with_model_fallback(prompt, FoodEstimation, temperature=0.1)
+    except Exception:
+        # If Gemini model family fails entirely, surface the error to caller
+        raise
 
 class WeeklyAnalysis(BaseModel):
     status_summary: str
@@ -125,17 +143,7 @@ def analyze_consistency_review(user_data: dict, recent_summaries: list = None) -
     2. "actionable_tip" - one practical recommendation for the next day or week.
     """
 
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=ConsistencyReview,
-            temperature=0.25,
-        ),
-    )
-
-    return json.loads(response.text)
+    return _generate_with_model_fallback(prompt, ConsistencyReview, temperature=0.25)
 
 
 def analyze_weekly_report(daily_summaries: list, target_daily: int, total_consumed: int, estimated_weight_loss: float, user_data: dict = None) -> dict:
@@ -192,14 +200,4 @@ def analyze_weekly_report(daily_summaries: list, target_daily: int, total_consum
     3. "detailed_insights": Specific observations about their tracking patterns, meal distribution, and personalized suggestions
     """
     
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=WeeklyAnalysis,
-            temperature=0.3,  # Slightly higher for more personalized insights
-        ),
-    )
-    
-    return json.loads(response.text)
+    return _generate_with_model_fallback(prompt, WeeklyAnalysis, temperature=0.3)
