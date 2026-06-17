@@ -1,3 +1,4 @@
+import os
 import firebase_admin
 from firebase_admin import credentials, firestore, auth  # Added auth here
 
@@ -5,7 +6,21 @@ from config import settings
 
 # Initialize Firebase Admin if not already initialized
 if not firebase_admin._apps:
-    cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+    # Check multiple possible paths for credentials file
+    creds_path = settings.FIREBASE_CREDENTIALS_PATH
+    possible_paths = [
+        "/etc/secrets/serviceAccountKey.json",  # Render's secret directory
+        "/etc/secrets/config/serviceAccountKey.json",  # Alternate Render path
+        creds_path,  # Default/local path
+    ]
+    
+    # Find the first path that exists
+    for path in possible_paths:
+        if os.path.exists(path):
+            creds_path = path
+            break
+    
+    cred = credentials.Certificate(creds_path)
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()

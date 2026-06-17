@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from google import genai
 from google.genai import types
 from config import settings
+import json
 
 # Initialize the new GenAI Client
 # It automatically looks for the GEMINI_API_KEY environment variable
@@ -46,7 +47,6 @@ def analyze_user_fitness(profile_data: dict) -> dict:
     
     # The SDK parses it directly into the schema if requested, 
     # but since it returns valid JSON matching our Pydantic object, we can safely parse it
-    import json
     return json.loads(response.text)
 
 class FoodEstimation(BaseModel):
@@ -55,7 +55,7 @@ class FoodEstimation(BaseModel):
 
 def estimate_food_calories(food_text: str) -> dict:
     """
-    Uses Gemini 2.5 to analyze a natural language food description
+    Uses Gemini 1.5 Flash to analyze a natural language food description
     and return an estimated calorie count with an itemized breakdown.
     """
     prompt = f"""
@@ -76,5 +76,75 @@ def estimate_food_calories(food_text: str) -> dict:
         ),
     )
     
-    import json
+    return json.loads(response.text)
+
+class WeeklyAnalysis(BaseModel):
+    status_summary: str
+    coach_verdict: str
+    detailed_insights: str
+
+def analyze_weekly_report(daily_summaries: list, target_daily: int, total_consumed: int, estimated_weight_loss: float, user_data: dict = None) -> dict:
+    """
+    Analyzes a full week of calorie tracking and provides comprehensive report.
+    
+    Args:
+        daily_summaries: List of daily logs with date and total_consumed
+        target_daily: Target calories per day
+        total_consumed: Total calories consumed in the week
+        estimated_weight_loss: Calculated weight loss/gain based on calorie deficit
+        user_data: Optional user profile data (weight, height, age, sex, etc.)
+    
+    Returns:
+        Dictionary with status_summary, coach_verdict, and detailed_insights
+    """
+    total_target = target_daily * 7
+    net_deficit = total_target - total_consumed
+    
+    daily_breakdown = "\n".join([f"  {d['date']}: {d['total_consumed']} kcal" for d in daily_summaries])
+    
+    # Build user context if data is provided
+    user_context = ""
+    if user_data:
+        user_context = f"""
+    User Profile:
+    - Age: {user_data.get('age', 'N/A')}
+    - Sex: {user_data.get('sex', 'N/A')}
+    - Height: {user_data.get('height', 'N/A')} cm
+    - Current Weight: {user_data.get('weight', 'N/A')} kg
+    - Activity Level: {user_data.get('activity_level', 'N/A')}
+    - Maintenance Calories: {user_data.get('maintenance_calories', 'N/A')} kcal
+    - Personal Context: {user_data.get('context', 'N/A')}
+    - Target Timeline: {user_data.get('timeline', 'N/A')}
+    """
+    
+    prompt = f"""
+    You are an expert fitness coach analyzing a client's weekly calorie tracking performance.
+    {user_context}
+    
+    Weekly Summary:
+    - Daily Target: {target_daily} kcal
+    - Total Weekly Target: {total_target} kcal
+    - Total Consumed: {total_consumed} kcal
+    - Net Deficit: {net_deficit} kcal
+    - Estimated Weight Loss/Gain: {round(estimated_weight_loss, 2)} kg
+    
+    Daily Breakdown:
+    {daily_breakdown}
+    
+    Provide a detailed weekly analysis in JSON format with:
+    1. "status_summary": A concise 2-3 sentence assessment of their progress (consider their personal goals and timeline)
+    2. "coach_verdict": Your professional recommendation for next week based on their profile and performance
+    3. "detailed_insights": Specific observations about their tracking patterns, meal distribution, and personalized suggestions
+    """
+    
+    response = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=WeeklyAnalysis,
+            temperature=0.3,  # Slightly higher for more personalized insights
+        ),
+    )
+    
     return json.loads(response.text)

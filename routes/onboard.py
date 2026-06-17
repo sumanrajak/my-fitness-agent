@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Request, Form,HTTPException
+import json
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from services.firebase_service import save_user_profile, get_user_document
-from services.gemini_service import analyze_user_fitness, estimate_food_calories
+from config.settings import settings
+from services.firebase_service import save_user_profile, get_user_document, db
+from services.gemini_service import analyze_user_fitness, estimate_food_calories, analyze_weekly_report
 router = APIRouter(prefix="/onboard", tags=["Onboarding & Dashboard"])
 templates = Jinja2Templates(directory="templates")
 
@@ -69,10 +72,6 @@ async def start_journey(uid: str = Form(...), start_date: str = Form(...)):
     
     return RedirectResponse(url=f"/onboard/dashboard?uid={uid}", status_code=303)
 
-
-from datetime import datetime
-from services.firebase_service import db # Import db directly if needed or add a service helper
-
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page(request: Request, uid: str, date: str = None):
     user_data = get_user_document(uid)
@@ -120,6 +119,82 @@ async def dashboard_page(request: Request, uid: str, date: str = None):
         "daily_log": daily_log
     }
 )
+
+@router.get("/weekly-report", response_class=HTMLResponse)
+async def weekly_report(request: Request, uid: str, end_date: str = None):
+    user_data = get_user_document(uid)
+    if not user_data:
+        return RedirectResponse(url="/")
+    
+    if not end_date:
+        end_date = datetime.today().strftime('%Y-%m-%d')
+    
+    end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+    start_dt = end_dt - timedelta(days=6)
+    start_date = start_dt.strftime('%Y-%m-%d')
+    
+    # Fetch logs for the 7-day range
+    logs_ref = db.collection("users").document(uid).collection("daily_tracker")
+    docs = logs_ref.where("date", ">=", start_date).where("date", "<=", end_date).stream()
+    
+    # Initialize map to ensure all days are represented
+    dates_map = {}
+    for i in range(7):
+        d = (start_dt + timedelta(days=i)).strftime('%Y-%m-%d')
+        dates_map[d] = {"date": d, "total_consumed": 0, "logs_count": 0}
+
+    total_consumed = 0
+    for doc in docs:
+        data = doc.to_dict()
+        d = data.get("date")
+        if d in dates_map:
+            dates_map[d]["total_consumed"] = data.get("total_consumed", 0)
+            dates_map[d]["logs_count"] = len(data.get("logs", []))
+            total_consumed += data.get("total_consumed", 0)
+
+    daily_summaries = sorted(dates_map.values(), key=lambda x: x["date"])
+    target_daily = user_data.get("target_calories", 0)
+    total_target = target_daily * 7
+    net_deficit = total_target - total_consumed
+    est_loss = net_deficit / 7700.0  # Approx 7700 kcal deficit = 1kg
+
+    # LLM Call for Weekly Analysis using the dedicated service function
+    try:
+        ai_analysis = analyze_weekly_report(
+            daily_summaries=daily_summaries,
+            target_daily=target_daily,
+            total_consumed=total_consumed,
+            estimated_weight_loss=est_loss,
+            user_data=user_data
+        )
+        # Add calculated metrics to the analysis
+        ai_analysis["total_consumed"] = total_consumed
+        ai_analysis["total_target"] = total_target
+        ai_analysis["net_deficit"] = net_deficit
+        ai_analysis["estimated_weight_loss"] = round(est_loss, 2)
+    except Exception as e:
+        print("LLM Error:", e)
+        ai_analysis = {
+            "status_summary": "Error in Analyzing Weekly Report",
+            "coach_verdict": "",
+            "detailed_insights": "Keep monitoring your daily intake and adjust as needed based on your weight changes.",
+            "total_consumed": total_consumed,
+            "total_target": total_target,
+            "net_deficit": net_deficit,
+            "estimated_weight_loss": round(est_loss, 2)
+        }
+
+    return templates.TemplateResponse(
+        name="weekly_report.html",
+        request=request,
+        context={
+            "user": user_data,
+            "start_date": start_date,
+            "end_date": end_date,
+            "daily_summaries": daily_summaries,
+            "ai_analysis": ai_analysis
+        }
+    )
 
 @router.post("/log-calories")
 async def log_calories(
