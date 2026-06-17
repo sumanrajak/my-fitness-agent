@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div class="container">
-        <h1 style="text-align: center;">AI Fitness Coach</h1>
+    <div class="container auth-box">
+        <h1 style="text-align: center; margin-bottom: 20px;">AI Fitness Coach</h1>
         
         <div class="form-toggle">
             <button id="toggle-login" class="active-tab" onclick="switchForm('login')">Login</button>
@@ -16,33 +16,43 @@
         </div>
 
         <form id="login-form" action="/auth/login" method="POST">
-            <h3>Sign In</h3>
-            <label>Email Address:</label>
-            <input type="email" name="email" required>
+            <h3 style="margin-bottom: 15px;">Sign In</h3>
+            <div class="form-group">
+                <label>Email Address:</label>
+                <input type="email" name="email" required>
+            </div>
 
-            <label>Password:</label>
-            <input type="password" name="password" required>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" name="password" required>
+            </div>
 
-            <button type="submit">Sign In</button>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 5px;">Sign In</button>
         </form>
 
         <form id="register-form" action="/auth/register" method="POST" style="display: none;">
-            <h3>Create Account</h3>
-            <label>Email Address:</label>
-            <input type="email" name="email" required>
+            <h3 style="margin-bottom: 15px;">Create Account</h3>
+            <div class="form-group">
+                <label>Email Address:</label>
+                <input type="email" name="email" required>
+            </div>
 
-            <label>Password:</label>
-            <input type="password" name="password" required minlength="6">
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" name="password" required minlength="6">
+            </div>
 
-            <button type="submit" style="background-color: #10b981;">Sign Up</button>
+            <button type="submit" class="btn btn-success" style="width: 100%; margin-top: 5px;">Sign Up</button>
         </form>
     </div>
 
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loader-card">
-            <div class="loader-dot"></div>
-            <div class="loader-dot"></div>
-            <div class="loader-dot"></div>
+            <div class="loader-dots-container">
+                <div class="loader-dot"></div>
+                <div class="loader-dot"></div>
+                <div class="loader-dot"></div>
+            </div>
             <p>Loading, please wait...</p>
         </div>
     </div>

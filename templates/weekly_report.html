@@ -7,67 +7,72 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div class="container dashboard">
+    <div class="container">
         <h1>Weekly Progress Report</h1>
-        <form method="GET" action="/onboard/weekly-report" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 18px;">
-            <input type="hidden" name="uid" value="{{ user.uid }}">
-            <label style="font-weight: 600; margin: 0;">From:</label>
-            <input type="date" name="start_date" value="{{ start_date }}" required style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
-            <label style="font-weight: 600; margin: 0;">To:</label>
-            <input type="date" name="end_date" value="{{ end_date }}" required style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
-            <button type="submit" style="background-color: #10b981; color: white; padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer;">Update Range</button>
-        </form>
-        <p>Period: <strong>{{ start_date }}</strong> to <strong>{{ end_date }}</strong></p>
         
-        <div style="margin: 20px 0;">
-            <a href="/onboard/dashboard?uid={{ user.uid }}" class="logout-btn" style="color: #0070f3; font-weight: 600;">← Back to Dashboard</a>
+        <div class="filter-bar" style="margin-top: 15px;">
+            <form method="GET" action="/onboard/weekly-report" class="filter-flex">
+                <input type="hidden" name="uid" value="{{ user.uid }}">
+                <label>From:</label>
+                <input type="date" name="start_date" value="{{ start_date }}" required>
+                <label>To:</label>
+                <input type="date" name="end_date" value="{{ end_date }}" required>
+                <button type="submit" class="btn btn-success">Update Range</button>
+            </form>
+        </div>
+        
+        <p style="margin-bottom: 20px;">Period: <strong>{{ start_date }}</strong> to <strong>{{ end_date }}</strong></p>
+        
+        <div style="margin-bottom: 30px;">
+            <a href="/onboard/dashboard?uid={{ user.uid }}" class="btn btn-primary">← Back to Dashboard</a>
         </div>
 
         <div class="metrics-grid">
-            <div class="card bg-blue">
-                <h3 style="margin: 0; font-size: 14px;">Total Consumed</h3>
-                <h2 style="margin: 10px 0 0 0;">{{ ai_analysis.total_consumed }} kcal</h2>
+            <div class="metric-card bg-blue">
+                <h3>Total Consumed</h3>
+                <h2>{{ ai_analysis.total_consumed }} kcal</h2>
             </div>
-            <div class="card bg-green">
-                <h3 style="margin: 0; font-size: 14px;">Est. Weight Change</h3>
-                <h2 style="margin: 10px 0 0 0;">{{ ai_analysis.estimated_weight_loss }} kg</h2>
-            </div>
-        </div>
-
-        <div class="details-section" style="background: #faf5ff; border: 1px solid #e9d5ff; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
-            <h3 style="margin-top: 0; color: #6b21a8;">🤖 AI Weekly Analysis</h3>
-            <p style="line-height: 1.6; color: #4c1d95;">{{ ai_analysis.status_summary }}</p>
-            <div style="background: #fff; padding: 15px; border-radius: 6px; border-left: 4px solid #7c3aed; margin-top: 15px;">
-                <strong style="color: #7c3aed;">Coach's Verdict:</strong>
-                <p style="margin: 5px 0 0 0; font-style: italic;">{{ ai_analysis.coach_verdict }}</p>
+            <div class="metric-card bg-green">
+                <h3>Est. Weight Change</h3>
+                <h2>{{ ai_analysis.estimated_weight_loss }} kg</h2>
             </div>
         </div>
 
-        <div class="details-section" style="background: #fff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 6px;">
-            <h3 style="margin-top: 0;">Daily Breakdown</h3>
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+        <div class="card-section ai-coach-panel purple-variant">
+            <h3 style="color: #c084fc;">🤖 AI Weekly Analysis</h3>
+            <p style="margin: 10px 0; color: #e9d5ff;">{{ ai_analysis.status_summary }}</p>
+            <div style="background: rgba(15,23,42,0.6); padding: 16px; border-radius: var(--radius-sm); border-left: 4px solid var(--accent-purple); margin: 15px 0;">
+                <strong style="color: #c084fc;">Coach's Verdict:</strong>
+                <p style="margin: 6px 0 0 0; font-style: italic; color: #f3e8ff;">{{ ai_analysis.coach_verdict }}</p>
+            </div>
+            <p style="color: #e9d5ff;">{{ ai_analysis.detailed_insights }}</p>
+        </div>
+
+        <div class="card-section">
+            <h3 style="margin-bottom: 10px;">Daily Breakdown</h3>
+            <div class="table-responsive">
+                <table>
                     <thead>
-                        <tr style="background-color: #f1f5f9; border-bottom: 2px solid #cbd5e1; text-align: left;">
-                            <th style="padding: 12px 10px;">Date</th>
-                            <th style="padding: 12px 10px;">Meals Logged</th>
-                            <th style="padding: 12px 10px; text-align: right;">Total Calories</th>
-                            <th style="padding: 12px 10px; text-align: right;">Status</th>
+                        <tr>
+                            <th>Date</th>
+                            <th>Meals Logged</th>
+                            <th style="text-align: right;">Total Calories</th>
+                            <th style="text-align: right;">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for day in daily_summaries %}
-                        <tr style="border-bottom: 1px solid #e2e8f0;">
-                            <td style="padding: 12px 10px;">{{ day.date }}</td>
-                            <td style="padding: 12px 10px;">{{ day.logs_count }}</td>
-                            <td style="padding: 12px 10px; text-align: right; font-weight: bold;">{{ day.total_consumed }} kcal</td>
-                            <td style="padding: 12px 10px; text-align: right;">
+                        <tr>
+                            <td>{{ day.date }}</td>
+                            <td>{{ day.logs_count }}</td>
+                            <td style="text-align: right; font-weight: bold;">{{ day.total_consumed }} kcal</td>
+                            <td style="text-align: right;">
                                 {% if day.total_consumed == 0 %}
-                                    <span style="color: #94a3b8;">No Data</span>
+                                    <span style="color: var(--text-muted);">No Data</span>
                                 {% elif day.total_consumed <= user.target_calories %}
-                                    <span style="color: #10b981;">● On Track</span>
+                                    <span style="color: var(--accent-success);">● On Track</span>
                                 {% else %}
-                                    <span style="color: #ef4444;">● Over Target</span>
+                                    <span style="color: var(--accent-danger);">● Over Target</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -78,7 +83,7 @@
         </div>
 
         <div style="margin-top: 30px; text-align: center;">
-            <p style="font-size: 12px; color: #94a3b8;">Weight estimation is calculated based on calorie deficit (approx. 7700 kcal per kg).</p>
+            <p style="font-size: 11px; color: var(--text-muted);">Weight estimation is calculated based on calorie deficit (approx. 7700 kcal per kg).</p>
         </div>
     </div>
 </body>

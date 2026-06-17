@@ -220,8 +220,8 @@ async def weekly_report(request: Request, uid: str, start_date: str = None, end_
         print("LLM Error:", e)
         ai_analysis = {
             "status_summary": "Error in Analyzing Weekly Report",
-            "coach_verdict": "",
-            "detailed_insights": "Keep monitoring your daily intake and adjust as needed based on your weight changes.",
+            "coach_verdict": e,
+            "detailed_insights": "",
             "total_consumed": total_consumed,
             "total_target": total_target,
             "net_deficit": net_deficit,

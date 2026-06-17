@@ -29,6 +29,7 @@ def get_user_document(uid: str):
     """Fetch user document from Firestore."""
     user_ref = db.collection("users").document(uid)
     doc = user_ref.get()
+    print(doc.to_dict())
     if doc.exists:
         return doc.to_dict()
     return None
