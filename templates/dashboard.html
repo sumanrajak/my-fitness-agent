@@ -52,10 +52,18 @@
             </form>
         </div>
 
+        <div class="action-btn-group" style="margin-bottom: 25px;">
+            <a href="/onboard/trends?uid={{ user.uid }}" class="btn btn-purple">📈 View Weight & Calories Trends</a>
+        </div>
+
         <div class="metrics-grid">
             <div class="metric-card bg-blue">
                 <h3>Target Calories</h3>
                 <h2>{{ user.target_calories }} kcal</h2>
+            </div>
+            <div class="metric-card bg-violet">
+                <h3>Target Weight</h3>
+                <h2>{{ user.target_weight }} kg</h2>
             </div>
             <div class="metric-card {% if daily_log.balance >= 0 %}bg-green{% else %}bg-red{% endif %}">
                 <h3>Calories Remaining</h3>
@@ -113,6 +121,7 @@
                                 <th>What You Logged</th>
                                 <th>AI Breakdown Insights</th>
                                 <th style="text-align: right;">Calories</th>
+                                <th style="text-align: right;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -123,6 +132,40 @@
                                 <td><strong>{{ item.input_text }}</strong></td>
                                 <td style="font-size: 0.9rem; color: #cbd5e1; font-style: italic;">{{ item.breakdown }}</td>
                                 <td style="text-align: right; font-weight: bold; color: var(--accent-success);">+{{ item.calories }} kcal</td>
+                                <td style="text-align: right; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-dark btn-small" onclick="toggleEditRow({{ loop.index0 }})">Edit</button>
+                                    <form method="POST" action="/onboard/delete-log-item" style="display:inline; margin:0;">
+                                        <input type="hidden" name="uid" value="{{ user.uid }}">
+                                        <input type="hidden" name="date" value="{{ selected_date }}">
+                                        <input type="hidden" name="index" value="{{ loop.index0 }}">
+                                        <button type="submit" class="btn btn-danger btn-small">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr id="edit-row-{{ loop.index0 }}" class="edit-row" style="display:none;">
+                                <td colspan="6">
+                                    <form action="/onboard/edit-log-item" method="POST" class="edit-inline-form">
+                                        <input type="hidden" name="uid" value="{{ user.uid }}">
+                                        <input type="hidden" name="date" value="{{ selected_date }}">
+                                        <input type="hidden" name="index" value="{{ loop.index0 }}">
+
+                                        <div class="edit-grid">
+                                            <div class="form-group">
+                                                <label>Calories</label>
+                                                <input type="number" name="calories" value="{{ item.calories }}" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Log Description</label>
+                                                <input type="text" name="input_text" value="{{ item.input_text }}">
+                                            </div>
+                                        </div>
+
+                                        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
+                                            <button type="submit" class="btn btn-primary btn-small">Save</button>
+                                            <button type="button" class="btn btn-dark btn-small" onclick="toggleEditRow({{ loop.index0 }})">Cancel</button>
+                                        </div>
+                                    </form>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -131,6 +174,52 @@
             {% else %}
                 <p style="font-style: italic; margin-top: 15px;">No meals logged yet for this date. Use the form above to analyze your food.</p>
             {% endif %}
+        </div>
+
+        <div class="card-section">
+            <h3>🧮 Daily Progress Check-In</h3>
+            <form action="/onboard/save-daily-log" method="POST">
+                <input type="hidden" name="uid" value="{{ user.uid }}">
+                <input type="hidden" name="date" value="{{ selected_date }}">
+
+                <div class="form-group">
+                    <label>Today's Weight (kg)</label>
+                    <input type="number" step="0.1" name="weight" value="{{ daily_log.weight }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Activity Description</label>
+                    <textarea name="activity_description" rows="3" placeholder="e.g. 30 min brisk walk, 10 min strength training">{{ daily_log.activity_description }}</textarea>
+                </div>
+
+                <div class="form-group split-fields">
+                    <div>
+                        <label>Steps</label>
+                        <input type="number" name="steps" value="{{ daily_log.steps }}" min="0">
+                    </div>
+                    <div>
+                        <label>Exercise Minutes</label>
+                        <input type="number" name="exercise_minutes" value="{{ daily_log.exercise_minutes }}" min="0">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-success" style="width: 100%; padding: 14px;">
+                    Save Daily Check-In
+                </button>
+            </form>
+        </div>
+
+        <div class="card-section">
+            <h3>📈 AI Progress Summary for {{ selected_date }}</h3>
+            <p style="margin-bottom: 12px; color: var(--text-muted);">Tap the button below to generate a day-wise progress review without triggering the AI on every page load.</p>
+            <button id="progress-check-btn" onclick="triggerProgressReview()" class="btn btn-success" style="width: 100%; padding: 14px; margin-bottom: 18px;">
+                Generate Progress Summary
+            </button>
+            <div id="progress-summary-box" class="progress-summary" style="display: none;">
+                <p><strong>Status:</strong> <span id="progress-status">...</span></p>
+                <p><strong>Observation:</strong> <span id="progress-observation">...</span></p>
+                <p><strong>Coach Recommendation:</strong> <span id="progress-recommendation">...</span></p>
+            </div>
         </div>
 
         <div class="card-section ai-coach-panel">
@@ -179,7 +268,7 @@
             btn.disabled = true;
             showLoadingOverlay();
 
-            fetch(`/onboard/ai-review?uid={{ user.uid }}&target_calories={{ user.target_calories }}`)
+            fetch(`/onboard/ai-review?uid={{ user.uid }}`)
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById('review-eval').innerText = data.status_evaluation;
@@ -195,6 +284,42 @@
                     btn.disabled = false;
                     hideLoadingOverlay();
                 });
+        }
+
+        function triggerProgressReview() {
+            const btn = document.getElementById('progress-check-btn');
+            const box = document.getElementById('progress-summary-box');
+            const status = document.getElementById('progress-status');
+            const observation = document.getElementById('progress-observation');
+            const recommendation = document.getElementById('progress-recommendation');
+            
+            btn.innerText = "Generating summary...";
+            btn.disabled = true;
+            showLoadingOverlay();
+
+            fetch(`/onboard/progress-review?uid={{ user.uid }}&date={{ selected_date }}`)
+                .then(res => res.json())
+                .then(data => {
+                    status.innerText = data.status_summary;
+                    observation.innerText = data.change_observation;
+                    recommendation.innerText = data.coach_recommendation;
+                    box.style.display = 'block';
+                    btn.innerText = "Generate Progress Summary";
+                    btn.disabled = false;
+                    hideLoadingOverlay();
+                })
+                .catch(err => {
+                    console.error("Progress review failed:", err);
+                    btn.innerText = "Generate Progress Summary";
+                    btn.disabled = false;
+                    hideLoadingOverlay();
+                });
+        }
+
+        function toggleEditRow(index) {
+            const row = document.getElementById(`edit-row-${index}`);
+            if (!row) return;
+            row.style.display = row.style.display === 'table-row' ? 'none' : 'table-row';
         }
 
         document.querySelectorAll('form').forEach(form => {

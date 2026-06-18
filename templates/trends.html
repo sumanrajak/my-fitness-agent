@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trend Graphs</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Weight & Calorie Trends</h1>
+        <p style="margin-bottom: 24px; color: var(--text-muted);">Review your daily progress against target calories and target weight, and see how your weight and activity data are changing.</p>
+
+        <div style="margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+            <div class="metric-card bg-violet" style="padding: 14px; min-width: 200px;">
+                <h3 style="font-size: 0.95rem; margin-bottom: 8px;">Target Weight</h3>
+                <p style="font-size: 1.4rem; margin: 0;">{{ user.target_weight }} kg</p>
+            </div>
+            <div class="metric-card bg-blue" style="padding: 14px; min-width: 200px;">
+                <h3 style="font-size: 0.95rem; margin-bottom: 8px;">Target Calories</h3>
+                <p style="font-size: 1.4rem; margin: 0;">{{ target_calories }} kcal</p>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <a href="/onboard/dashboard?uid={{ user.uid }}" class="btn btn-primary">← Back to Dashboard</a>
+        </div>
+
+        <div class="chart-grid">
+            <div class="card-section">
+                <h3>Weight Trend</h3>
+                <canvas id="weightChart"></canvas>
+            </div>
+            <div class="card-section">
+                <h3>Calories vs Target</h3>
+                <canvas id="calorieChart"></canvas>
+            </div>
+            <div class="card-section">
+                <h3>Daily Step Activity</h3>
+                <canvas id="activityChart"></canvas>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px; text-align: center; color: var(--text-muted);">
+            <p>Trend graphs are based on your last {{ dates|length }} days of logged data.</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const labels = {{ dates | tojson }};
+        const weightSeries = {{ weight_values | tojson }};
+        const calorieSeries = {{ calorie_values | tojson }};
+        const activitySeries = {{ activity_values | tojson }};
+        const targetCalories = {{ target_calories }};
+
+        const weightChart = new Chart(document.getElementById('weightChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Weight (kg)',
+                    data: weightSeries,
+                    borderColor: '#60a5fa',
+                    backgroundColor: 'rgba(96, 165, 250, 0.25)',
+                    tension: 0.35,
+                    fill: true,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#3b82f6'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: '#e2e8f0' } }
+                },
+                scales: {
+                    x: { ticks: { color: '#cbd5e1' } },
+                    y: { ticks: { color: '#cbd5e1' }, grid: { color: 'rgba(148,163,184,0.2)' } }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('calorieChart'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Calories Logged',
+                        data: calorieSeries,
+                        backgroundColor: 'rgba(56, 189, 248, 0.7)'
+                    },
+                    {
+                        label: 'Target Calories',
+                        data: Array(labels.length).fill(targetCalories),
+                        type: 'line',
+                        borderColor: '#f97316',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.25
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: '#e2e8f0' } }
+                },
+                scales: {
+                    x: { ticks: { color: '#cbd5e1' } },
+                    y: { ticks: { color: '#cbd5e1' }, grid: { color: 'rgba(148,163,184,0.2)' } }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('activityChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Daily Steps',
+                    data: activitySeries,
+                    borderColor: '#34d399',
+                    backgroundColor: 'rgba(52, 211, 153, 0.2)',
+                    tension: 0.35,
+                    fill: true,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#10b981'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: '#e2e8f0' } }
+                },
+                scales: {
+                    x: { ticks: { color: '#cbd5e1' } },
+                    y: { ticks: { color: '#cbd5e1' }, grid: { color: 'rgba(148,163,184,0.2)' } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

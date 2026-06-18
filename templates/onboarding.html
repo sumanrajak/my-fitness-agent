@@ -48,6 +48,12 @@
             </div>
 
             <div class="form-group">
+                <label>Target Weight (kg):</label>
+                <input type="number" name="target_weight" step="0.1" value="{{ target_weight or '' }}" required>
+                <small style="color: var(--text-muted);">This is as important as your target timeline for goal planning.</small>
+            </div>
+
+            <div class="form-group">
                 <label>Activity Level:</label>
                 <select name="activity_level" required>
                     <option value="Sedentary" {% if activity_level == 'Sedentary' %}selected{% endif %}>Sedentary (Little to no exercise)</option>

@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from config.settings import settings
 from services.firebase_service import save_user_profile, get_user_document, db
-from services.gemini_service import analyze_user_fitness, estimate_food_calories, analyze_weekly_report, analyze_consistency_review
+from services.gemini_service import analyze_user_fitness, estimate_food_calories, analyze_weekly_report, analyze_consistency_review, analyze_progress_report
 router = APIRouter(prefix="/onboard", tags=["Onboarding & Dashboard"])
 templates = Jinja2Templates(directory="templates")
 
@@ -21,6 +21,7 @@ async def handle_onboarding_submit(
     sex: str = Form(...),
     height: float = Form(...),
     weight: float = Form(...),
+    target_weight: float = Form(...),
     activity_level: str = Form(...),
     context: str = Form(...),
     timeline: str = Form(...)
@@ -33,6 +34,7 @@ async def handle_onboarding_submit(
         "sex": sex,
         "height": height,
         "weight": weight,
+        "target_weight": target_weight,
         "activity_level": activity_level,
         "context": context,
         "timeline": timeline
@@ -62,11 +64,15 @@ async def start_journey(uid: str = Form(...), start_date: str = Form(...)):
     # Fallback to current date if something goes wrong
     if not start_date:
         start_date = datetime.today().strftime('%Y-%m-%d')
-        
+
     update_data = {
         "journey_start_date": start_date
     }
-    
+
+    existing_user = get_user_document(uid)
+    if existing_user and not existing_user.get("starting_weight"):
+        update_data["starting_weight"] = existing_user.get("weight")
+
     # Merge this into the existing Firestore document
     save_user_profile(uid, update_data)
     
@@ -92,7 +98,8 @@ async def reanalysis_page(request: Request, uid: str):
             "context": user_data.get("context", ""),
             "timeline": user_data.get("timeline", ""),
             "title": "Reanalyze Your Goals",
-            "button_label": "Update Goals"
+            "button_label": "Update Goals",
+            "target_weight": user_data.get("target_weight", ""),
         }
     )
 
@@ -116,6 +123,10 @@ async def dashboard_page(request: Request, uid: str, date: str = None):
         "total_protein": 0,
         "total_fiber": 0,
         "total_carbs": 0,
+        "weight": user_data.get("weight", 0),
+        "activity_description": "",
+        "steps": 0,
+        "exercise_minutes": 0,
         "logs": []
     }
     
@@ -139,6 +150,14 @@ async def dashboard_page(request: Request, uid: str, date: str = None):
         
         if log_doc.exists:
             daily_log = log_doc.to_dict()
+            # Ensure the optional daily fields are present for the template
+            daily_log.setdefault("weight", user_data.get("weight", 0))
+            daily_log.setdefault("activity_description", "")
+            daily_log.setdefault("steps", 0)
+            daily_log.setdefault("exercise_minutes", 0)
+            daily_log.setdefault("total_consumed", 0)
+            daily_log.setdefault("logs", [])
+
             # Calculate remaining balance dynamically
             daily_log["balance"] = user_data["target_calories"] - daily_log.get("total_consumed", 0)
             # Summarize macros for the selected date
@@ -152,12 +171,93 @@ async def dashboard_page(request: Request, uid: str, date: str = None):
     request=request,
     name="dashboard.html",
     context={
-        "user": user_data, 
+        "user": user_data,
         "journey_status": journey_status,
         "selected_date": date,
         "daily_log": daily_log
     }
 )
+
+@router.post("/save-daily-log")
+async def save_daily_log(
+    uid: str = Form(...),
+    date: str = Form(...),
+    weight: float = Form(...),
+    activity_description: str = Form(""),
+    steps: int = Form(0),
+    exercise_minutes: int = Form(0)
+):
+    log_ref = db.collection("users").document(uid).collection("daily_tracker").document(date)
+    log_doc = log_ref.get()
+    from google.cloud import firestore
+
+    update_data = {
+        "date": date,
+        "weight": weight,
+        "activity_description": activity_description,
+        "steps": steps,
+        "exercise_minutes": exercise_minutes,
+    }
+
+    if log_doc.exists:
+        log_ref.set(update_data, merge=True)
+    else:
+        update_data.update({
+            "total_consumed": 0,
+            "total_protein": 0,
+            "total_fiber": 0,
+            "total_carbs": 0,
+            "logs": []
+        })
+        log_ref.set(update_data)
+
+    return RedirectResponse(url=f"/onboard/dashboard?uid={uid}&date={date}", status_code=303)
+
+@router.get("/trends", response_class=HTMLResponse)
+async def trends_page(request: Request, uid: str, days: int = 14):
+    user_data = get_user_document(uid)
+    if not user_data:
+        return RedirectResponse(url="/")
+
+    end_date = datetime.today()
+    start_date = end_date - timedelta(days=days - 1)
+
+    logs_ref = db.collection("users").document(uid).collection("daily_tracker")
+    docs = logs_ref.where("date", ">=", start_date.strftime('%Y-%m-%d')).where("date", "<=", end_date.strftime('%Y-%m-%d')).stream()
+
+    dates = [(start_date + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(days)]
+    weight_values = []
+    calorie_values = []
+    activity_values = []
+    chart_data = {date: {"weight": None, "calories": 0, "steps": 0, "exercise_minutes": 0} for date in dates}
+
+    for doc in docs:
+        data = doc.to_dict()
+        date_key = data.get("date")
+        if date_key in chart_data:
+            chart_data[date_key]["weight"] = data.get("weight")
+            chart_data[date_key]["calories"] = data.get("total_consumed", 0)
+            chart_data[date_key]["steps"] = data.get("steps", 0)
+            chart_data[date_key]["exercise_minutes"] = data.get("exercise_minutes", 0)
+
+    for d in dates:
+        day = chart_data[d]
+        weight_values.append(day["weight"] if day["weight"] is not None else 0)
+        calorie_values.append(day["calories"])
+        activity_values.append(day["steps"])
+
+    return templates.TemplateResponse(
+        name="trends.html",
+        request=request,
+        context={
+            "user": user_data,
+            "dates": dates,
+            "weight_values": weight_values,
+            "calorie_values": calorie_values,
+            "activity_values": activity_values,
+            "target_calories": user_data.get("target_calories", 0)
+        }
+    )
 
 @router.get("/weekly-report", response_class=HTMLResponse)
 async def weekly_report(request: Request, uid: str, start_date: str = None, end_date: str = None):
@@ -296,6 +396,75 @@ async def log_calories(
         
     return RedirectResponse(url=f"/onboard/dashboard?uid={uid}&date={date}", status_code=303)
 
+@router.post("/edit-log-item")
+async def edit_log_item(
+    uid: str = Form(...),
+    date: str = Form(...),
+    index: int = Form(...),
+    calories: int = Form(...),
+    input_text: str = Form(...)
+):
+    log_ref = db.collection("users").document(uid).collection("daily_tracker").document(date)
+    log_doc = log_ref.get()
+    if not log_doc.exists:
+        raise HTTPException(status_code=404, detail="Daily log not found")
+
+    log_data = log_doc.to_dict()
+    logs = log_data.get("logs", [])
+    if index < 0 or index >= len(logs):
+        raise HTTPException(status_code=400, detail="Invalid log item index")
+
+    logs[index]["calories"] = calories
+    logs[index]["input_text"] = input_text
+
+    total_consumed = sum(item.get("calories", 0) for item in logs)
+    total_protein = sum(item.get("protein", 0) for item in logs)
+    total_fiber = sum(item.get("fiber", 0) for item in logs)
+    total_carbs = sum(item.get("carbs", 0) for item in logs)
+
+    log_ref.update({
+        "logs": logs,
+        "total_consumed": total_consumed,
+        "total_protein": total_protein,
+        "total_fiber": total_fiber,
+        "total_carbs": total_carbs
+    })
+
+    return RedirectResponse(url=f"/onboard/dashboard?uid={uid}&date={date}", status_code=303)
+
+@router.post("/delete-log-item")
+async def delete_log_item(
+    uid: str = Form(...),
+    date: str = Form(...),
+    index: int = Form(...)
+):
+    log_ref = db.collection("users").document(uid).collection("daily_tracker").document(date)
+    log_doc = log_ref.get()
+    if not log_doc.exists:
+        raise HTTPException(status_code=404, detail="Daily log not found")
+
+    log_data = log_doc.to_dict()
+    logs = log_data.get("logs", [])
+    if index < 0 or index >= len(logs):
+        raise HTTPException(status_code=400, detail="Invalid log item index")
+
+    logs.pop(index)
+
+    total_consumed = sum(item.get("calories", 0) for item in logs)
+    total_protein = sum(item.get("protein", 0) for item in logs)
+    total_fiber = sum(item.get("fiber", 0) for item in logs)
+    total_carbs = sum(item.get("carbs", 0) for item in logs)
+
+    log_ref.update({
+        "logs": logs,
+        "total_consumed": total_consumed,
+        "total_protein": total_protein,
+        "total_fiber": total_fiber,
+        "total_carbs": total_carbs
+    })
+
+    return RedirectResponse(url=f"/onboard/dashboard?uid={uid}&date={date}", status_code=303)
+
 @router.get("/ai-review")
 async def ai_review(uid: str):
     user_data = get_user_document(uid)
@@ -324,4 +493,45 @@ async def ai_review(uid: str):
     return {
         "status_evaluation": review.get("status_evaluation", "Unable to evaluate consistency."),
         "actionable_tip": review.get("actionable_tip", "Keep logging regularly and stay consistent with meal balance.")
+    }
+
+@router.get("/progress-review")
+async def progress_review(uid: str, date: str = None):
+    user_data = get_user_document(uid)
+    if not user_data:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not date:
+        date = datetime.today().strftime('%Y-%m-%d')
+
+    log_ref = db.collection("users").document(uid).collection("daily_tracker").document(date)
+    log_doc = log_ref.get()
+
+    daily_log = {
+        "total_consumed": 0,
+        "weight": user_data.get("weight", 0),
+        "activity_description": "",
+        "steps": 0,
+        "exercise_minutes": 0,
+        "logs": []
+    }
+
+    if log_doc.exists:
+        daily_log = log_doc.to_dict()
+        daily_log.setdefault("weight", user_data.get("weight", 0))
+        daily_log.setdefault("activity_description", "")
+        daily_log.setdefault("steps", 0)
+        daily_log.setdefault("exercise_minutes", 0)
+        daily_log.setdefault("total_consumed", 0)
+        daily_log.setdefault("logs", [])
+
+    try:
+        report = analyze_progress_report(user_data=user_data, daily_log=daily_log, selected_date=date)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI progress review failed: {str(e)}")
+
+    return {
+        "status_summary": report.get("status_summary", "Unable to generate progress report."),
+        "change_observation": report.get("change_observation", "No observation available."),
+        "coach_recommendation": report.get("coach_recommendation", "Try logging your weight and activity before analyzing.")
     }

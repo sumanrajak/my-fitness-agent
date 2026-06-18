@@ -3,6 +3,7 @@ from google import genai
 from google.genai import types
 from config import settings
 import json
+from datetime import datetime
 
 # Initialize the new GenAI Client
 # It automatically looks for the GEMINI_API_KEY environment variable
@@ -62,12 +63,22 @@ def analyze_user_fitness(profile_data: dict) -> dict:
     - Biological Sex: {profile_data.get('sex')}
     - Height: {profile_data.get('height')} cm
     - Current Weight: {profile_data.get('weight')} kg
+    - Target Weight: {profile_data.get('target_weight', 'N/A')} kg
     - Activity Level: {profile_data.get('activity_level')}
     - Personal Context & Insights: {profile_data.get('context')}
-    - Target Timeline: {profile_data.get('timeline')}
-    
-    Calculate their exact daily maintenance calories and target calories to safely reach their goal within their timeline. 
-    Provide a concise summary of insights.
+    - Target Timeline: {profile_data.get('timeline')} (e.g., July 30th)
+    - Today's date: {datetime.today().strftime('%Y-%m-%d')}
+
+    CRITICAL MATH REQUIREMENT:
+    1. Calculate the exact total weight loss required to reach the target weight.
+    2. Determine the precise number of weeks available until the deadline.
+    3. Calculate the exact mathematical daily caloric deficit required to achieve this specific weight loss by the deadline (using the rule: 1kg of fat ≈ 7,700 kcal, or 1lb ≈ 3,500 kcal). Do NOT default to a standard 500-kcal deficit if it does not match the timeline math.
+    4. Subtract this exact deficit from the daily maintenance calories to find the absolute target calories.
+    5. Ensure the week-by-week weight estimation perfectly aligns with this calculated caloric deficit.
+
+    Provide a summary of insights including maintenance calories, the exact calculated daily caloric deficit, the resulting target calories, and a mathematically consistent weekwise weight estimation.
+
+    Return valid JSON with keys: maintenance_calories, target_calories, insights_summary.
     """
     
     # Try multiple Gemini models (fallbacks) until one succeeds
@@ -106,9 +117,63 @@ class WeeklyAnalysis(BaseModel):
     coach_verdict: str
     detailed_insights: str
 
+class ProgressReport(BaseModel):
+    status_summary: str
+    change_observation: str
+    coach_recommendation: str
+
 class ConsistencyReview(BaseModel):
     status_evaluation: str
     actionable_tip: str
+
+def analyze_progress_report(user_data: dict, daily_log: dict, selected_date: str) -> dict:
+    """
+    Generates a day-wise progress report using the user's goal, starting weight, current day weight, and calorie/activity log.
+    """
+    starting_weight = user_data.get('starting_weight', user_data.get('weight', 'N/A'))
+    current_weight = daily_log.get('weight', user_data.get('weight', user_data.get('weight', 'N/A')))
+    target_calories = user_data.get('target_calories', 0)
+    daily_calories = daily_log.get('total_consumed', 0)
+    daily_protein = daily_log.get('total_protein', 0)
+    daily_fiber = daily_log.get('total_fiber', 0)
+    daily_carbs = daily_log.get('total_carbs', 0)
+    steps = daily_log.get('steps', 0)
+    exercise_minutes = daily_log.get('exercise_minutes', 0)
+    activity_description = daily_log.get('activity_description', 'No activity details provided.')
+    timeline = user_data.get('timeline', 'unspecified timeline')
+
+    prompt = f"""
+    You are an expert fitness coach. Create a day-wise progress report for a client using these details.
+
+    User Profile:
+    - Age: {user_data.get('age', 'N/A')}
+    - Sex: {user_data.get('sex', 'N/A')}
+    - Height: {user_data.get('height', 'N/A')} cm
+    - Starting Weight: {starting_weight} kg
+    - Current Weight: {current_weight} kg
+    - Target Weight: {user_data.get('target_weight', 'N/A')} kg
+    - Activity Level: {user_data.get('activity_level', 'N/A')}
+    - Target Calories: {target_calories} kcal
+    - Timeline Goal: {timeline}
+    - Context: {user_data.get('context', 'N/A')}
+
+    Today's Tracking ({selected_date}):
+    - Calories Logged: {daily_calories} kcal
+    - Protein: {daily_protein} g
+    - Fiber: {daily_fiber} g
+    - Carbs: {daily_carbs} g
+    - Steps: {steps}
+    - Exercise Minutes: {exercise_minutes}
+    - Activity Notes: {activity_description}
+
+    Return valid JSON with exactly three keys:
+    1. "status_summary" -  about today's progress toward the goal and motivate if needed.
+    2. "change_observation" - one specific observation comparing today's weight or calories to the starting goal.
+    3. "coach_recommendation" - one practical recommendation for the next day add exactly how much weeks will it take to reach my goal.
+    """
+
+    return _generate_with_model_fallback(prompt, ProgressReport, temperature=0.3)
+
 
 def analyze_consistency_review(user_data: dict, recent_summaries: list = None) -> dict:
     """
@@ -131,8 +196,10 @@ def analyze_consistency_review(user_data: dict, recent_summaries: list = None) -
     - Sex: {user_data.get('sex', 'N/A')}
     - Height: {user_data.get('height', 'N/A')} cm
     - Current Weight: {user_data.get('weight', 'N/A')} kg
+    - Target Weight: {user_data.get('target_weight', 'N/A')} kg
     - Activity Level: {user_data.get('activity_level', 'N/A')}
     - Target Calories: {target_calories} kcal
+    - Target Timeline: {user_data.get('timeline', 'N/A')}
     - Personal Context: {user_data.get('context', 'N/A')}
 
     Recent Tracking:
@@ -174,10 +241,12 @@ def analyze_weekly_report(daily_summaries: list, target_daily: int, total_consum
     - Sex: {user_data.get('sex', 'N/A')}
     - Height: {user_data.get('height', 'N/A')} cm
     - Current Weight: {user_data.get('weight', 'N/A')} kg
+    - Target Weight: {user_data.get('target_weight', 'N/A')} kg
     - Activity Level: {user_data.get('activity_level', 'N/A')}
     - Maintenance Calories: {user_data.get('maintenance_calories', 'N/A')} kcal
-    - Personal Context: {user_data.get('context', 'N/A')}
+    - Target Calories: {user_data.get('target_calories', 'N/A')} kcal
     - Target Timeline: {user_data.get('timeline', 'N/A')}
+    - Personal Context: {user_data.get('context', 'N/A')}
     """
     
     prompt = f"""

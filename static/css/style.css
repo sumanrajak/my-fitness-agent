@@ -226,6 +226,7 @@ a {
 .metric-card.bg-blue { border-top: 4px solid var(--accent-primary); }
 .metric-card.bg-green { border-top: 4px solid var(--accent-success); color: var(--accent-success); }
 .metric-card.bg-red { border-top: 4px solid var(--accent-danger); color: #fda4af; }
+.metric-card.bg-violet { border-top: 4px solid #8b5cf6; color: #c4b5fd; }
 .metric-card.bg-sky { border-top: 4px solid #0ea5e9; }
 .metric-card.bg-teal { border-top: 4px solid #14b8a6; }
 .metric-card.bg-orange { border-top: 4px solid #f97316; }
@@ -318,6 +319,80 @@ input:focus, select:focus, textarea:focus {
 
 textarea {
     resize: vertical;
+}
+
+.split-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.btn-small {
+    padding: 8px 12px;
+    font-size: 0.82rem;
+}
+
+.edit-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+@media (max-width: 720px) {
+    .edit-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.progress-summary {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 18px;
+    gap: 14px;
+    display: grid;
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 22px;
+}
+
+@media (min-width: 900px) {
+    .chart-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .container {
+        padding: 20px 12px;
+    }
+    .chart-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+    .card-section {
+        padding: 18px;
+    }
+    .chart-grid canvas {
+        max-width: 100% !important;
+    }
+}
+
+@keyframes fadeInPage {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Authentication Tab Selectors */
