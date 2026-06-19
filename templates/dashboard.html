@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your AI Fitness Dashboard</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
+
 <body>
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loader-card">
@@ -21,9 +23,9 @@
     <div class="container">
         <h1>Fitness Journey Dashboard</h1>
         <p>Logged in as: <strong>{{ user.email }}</strong></p>
-        
+
         <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
-        
+
         {% if not user.journey_start_date %}
         <div class="alert-banner">
             <h3>📅 Lock In Your Strategy</h3>
@@ -35,15 +37,16 @@
             </form>
         </div>
         {% else %}
-        
+
         <div class="action-btn-group">
             <div class="status-tag">
                 🚀 Current Status: Week {{ journey_status.week_number }}, Day {{ journey_status.day_number }}
             </div>
             <a href="/onboard/weekly-report?uid={{ user.uid }}" class="btn btn-success">📊 Weekly Insights</a>
             <a href="/onboard/reanalysis?uid={{ user.uid }}" class="btn btn-purple">🔄 Reanalyze Goals</a>
+            <a href="/onboard/reanalysis-history?uid={{ user.uid }}" class="btn btn-dark">🗂️ Reanalysis History</a>
         </div>
-        
+
         <div class="filter-bar">
             <form method="GET" action="/onboard/dashboard" class="filter-flex">
                 <input type="hidden" name="uid" value="{{ user.uid }}">
@@ -57,17 +60,36 @@
         </div>
 
         <div class="metrics-grid">
+            <div class="metric-card bg-orange">
+                <h3>Maintenance</h3>
+                <h2>{{ user.maintenance_calories }} kcal</h2>
+            </div>
             <div class="metric-card bg-blue">
                 <h3>Target Calories</h3>
                 <h2>{{ user.target_calories }} kcal</h2>
+            </div>
+            <div class="metric-card bg-pink">
+                <h3>Deficit Created</h3>
+                <h2>{{ user.maintenance_calories - daily_log.total_consumed }} kcal</h2>
             </div>
             <div class="metric-card bg-violet">
                 <h3>Target Weight</h3>
                 <h2>{{ user.target_weight }} kg</h2>
             </div>
             <div class="metric-card {% if daily_log.balance >= 0 %}bg-green{% else %}bg-red{% endif %}">
-                <h3>Calories Remaining</h3>
+                <h3>Remaining</h3>
                 <h2>{{ daily_log.balance }} kcal</h2>
+                <div
+                    style="width: 100%; background-color: rgba(255, 255, 255, 0.2); border-radius: 8px; height: 8px; margin-top: 10px; overflow: hidden;">
+                    {% set progress = (daily_log.total_consumed / user.target_calories * 100) if user.target_calories
+                    and user.target_calories > 0 else 0 %}
+                    <div
+                        style="height: 100%; width: {{ progress if progress <= 100 else 100 }}%; background-color: #fff; transition: width 0.3s ease;">
+                    </div>
+                </div>
+                <div style="font-size: 0.8rem; margin-top: 4px; opacity: 0.8; text-align: right;">
+                    {{ daily_log.total_consumed }} / {{ user.target_calories }} kcal
+                </div>
             </div>
             <div class="metric-card bg-sky">
                 <h3>Protein</h3>
@@ -77,7 +99,7 @@
                 <h3>Fiber</h3>
                 <h2>{{ daily_log.total_fiber }} g</h2>
             </div>
-            <div class="metric-card bg-orange">
+            <div class="metric-card bg-orange" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
                 <h3>Carbs</h3>
                 <h2>{{ daily_log.total_carbs }} g</h2>
             </div>
@@ -88,7 +110,7 @@
             <form action="/onboard/log-calories" method="POST">
                 <input type="hidden" name="uid" value="{{ user.uid }}">
                 <input type="hidden" name="date" value="{{ selected_date }}">
-                
+
                 <div class="form-group">
                     <label>🍽️ Select Meal Type</label>
                     <select name="meal_type" required>
@@ -100,9 +122,11 @@
 
                 <div class="form-group">
                     <label>📝 Describe What You Consumed</label>
-                    <textarea name="food_description" rows="3" placeholder="e.g., 2 parathas with curd, or 200g pan-fried bhetki fish with a bowl of white rice" required></textarea>
+                    <textarea name="food_description" rows="3"
+                        placeholder="e.g., 2 parathas with curd, or 200g pan-fried bhetki fish with a bowl of white rice"
+                        required></textarea>
                 </div>
-                
+
                 <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px;">
                     Estimate & Log Calories (Total Consumed: {{ daily_log.total_consumed }} kcal)
                 </button>
@@ -112,67 +136,72 @@
         <div class="card-section">
             <h3>📋 Itemized Food Logs for {{ selected_date }}</h3>
             {% if daily_log.logs and daily_log.logs|length > 0 %}
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                <th>Meal</th>
-                                <th>What You Logged</th>
-                                <th>AI Breakdown Insights</th>
-                                <th style="text-align: right;">Calories</th>
-                                <th style="text-align: right;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in daily_log.logs %}
-                            <tr>
-                                <td style="color: var(--text-muted); font-size: 0.85rem;">{{ item.timestamp }}</td>
-                                <td><span class="meal-badge">{{ item.meal_type }}</span></td>
-                                <td><strong>{{ item.input_text }}</strong></td>
-                                <td style="font-size: 0.9rem; color: #cbd5e1; font-style: italic;">{{ item.breakdown }}</td>
-                                <td style="text-align: right; font-weight: bold; color: var(--accent-success);">+{{ item.calories }} kcal</td>
-                                <td style="text-align: right; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
-                                    <button type="button" class="btn btn-dark btn-small" onclick="toggleEditRow({{ loop.index0 }})">Edit</button>
-                                    <form method="POST" action="/onboard/delete-log-item" style="display:inline; margin:0;">
-                                        <input type="hidden" name="uid" value="{{ user.uid }}">
-                                        <input type="hidden" name="date" value="{{ selected_date }}">
-                                        <input type="hidden" name="index" value="{{ loop.index0 }}">
-                                        <button type="submit" class="btn btn-danger btn-small">Delete</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            <tr id="edit-row-{{ loop.index0 }}" class="edit-row" style="display:none;">
-                                <td colspan="6">
-                                    <form action="/onboard/edit-log-item" method="POST" class="edit-inline-form">
-                                        <input type="hidden" name="uid" value="{{ user.uid }}">
-                                        <input type="hidden" name="date" value="{{ selected_date }}">
-                                        <input type="hidden" name="index" value="{{ loop.index0 }}">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Meal</th>
+                            <th>What You Logged</th>
+                            <th>AI Breakdown Insights</th>
+                            <th style="text-align: right;">Calories</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in daily_log.logs %}
+                        <tr>
+                            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ item.timestamp }}</td>
+                            <td><span class="meal-badge">{{ item.meal_type }}</span></td>
+                            <td><strong>{{ item.input_text }}</strong></td>
+                            <td style="font-size: 0.9rem; color: #cbd5e1; font-style: italic;">{{ item.breakdown }}</td>
+                            <td style="text-align: right; font-weight: bold; color: var(--accent-success);">+{{
+                                item.calories }} kcal</td>
+                            <td
+                                style="text-align: right; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-dark btn-small"
+                                    onclick="toggleEditRow({{ loop.index0 }})">Edit</button>
+                                <form method="POST" action="/onboard/delete-log-item" style="display:inline; margin:0;">
+                                    <input type="hidden" name="uid" value="{{ user.uid }}">
+                                    <input type="hidden" name="date" value="{{ selected_date }}">
+                                    <input type="hidden" name="index" value="{{ loop.index0 }}">
+                                    <button type="submit" class="btn btn-danger btn-small">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr id="edit-row-{{ loop.index0 }}" class="edit-row" style="display:none;">
+                            <td colspan="6">
+                                <form action="/onboard/edit-log-item" method="POST" class="edit-inline-form">
+                                    <input type="hidden" name="uid" value="{{ user.uid }}">
+                                    <input type="hidden" name="date" value="{{ selected_date }}">
+                                    <input type="hidden" name="index" value="{{ loop.index0 }}">
 
-                                        <div class="edit-grid">
-                                            <div class="form-group">
-                                                <label>Calories</label>
-                                                <input type="number" name="calories" value="{{ item.calories }}" required>
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Log Description</label>
-                                                <input type="text" name="input_text" value="{{ item.input_text }}">
-                                            </div>
+                                    <div class="edit-grid">
+                                        <div class="form-group">
+                                            <label>Calories</label>
+                                            <input type="number" name="calories" value="{{ item.calories }}" required>
                                         </div>
+                                        <div class="form-group">
+                                            <label>Log Description</label>
+                                            <input type="text" name="input_text" value="{{ item.input_text }}">
+                                        </div>
+                                    </div>
 
-                                        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
-                                            <button type="submit" class="btn btn-primary btn-small">Save</button>
-                                            <button type="button" class="btn btn-dark btn-small" onclick="toggleEditRow({{ loop.index0 }})">Cancel</button>
-                                        </div>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                                    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
+                                        <button type="submit" class="btn btn-primary btn-small">Save</button>
+                                        <button type="button" class="btn btn-dark btn-small"
+                                            onclick="toggleEditRow({{ loop.index0 }})">Cancel</button>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
             {% else %}
-                <p style="font-style: italic; margin-top: 15px;">No meals logged yet for this date. Use the form above to analyze your food.</p>
+            <p style="font-style: italic; margin-top: 15px;">No meals logged yet for this date. Use the form above to
+                analyze your food.</p>
             {% endif %}
         </div>
 
@@ -189,7 +218,8 @@
 
                 <div class="form-group">
                     <label>Activity Description</label>
-                    <textarea name="activity_description" rows="3" placeholder="e.g. 30 min brisk walk, 10 min strength training">{{ daily_log.activity_description }}</textarea>
+                    <textarea name="activity_description" rows="3"
+                        placeholder="e.g. 30 min brisk walk, 10 min strength training">{{ daily_log.activity_description }}</textarea>
                 </div>
 
                 <div class="form-group split-fields">
@@ -211,8 +241,10 @@
 
         <div class="card-section">
             <h3>📈 AI Progress Summary for {{ selected_date }}</h3>
-            <p style="margin-bottom: 12px; color: var(--text-muted);">Tap the button below to generate a day-wise progress review without triggering the AI on every page load.</p>
-            <button id="progress-check-btn" onclick="triggerProgressReview()" class="btn btn-success" style="width: 100%; padding: 14px; margin-bottom: 18px;">
+            <p style="margin-bottom: 12px; color: var(--text-muted);">Tap the button below to generate a day-wise
+                progress review without triggering the AI on every page load.</p>
+            <button id="progress-check-btn" onclick="triggerProgressReview()" class="btn btn-success"
+                style="width: 100%; padding: 14px; margin-bottom: 18px;">
                 Generate Progress Summary
             </button>
             <div id="progress-summary-box" class="progress-summary" style="display: none;">
@@ -224,13 +256,15 @@
 
         <div class="card-section ai-coach-panel">
             <h3>🤖 Real-Time Coach Check-In</h3>
-            <p style="margin: 6px 0 16px 0;">Let your AI agent analyze your recent tracking trends to verify consistency against your macro goals.</p>
+            <p style="margin: 6px 0 16px 0;">Let your AI agent analyze your recent tracking trends to verify consistency
+                against your macro goals.</p>
             <button id="coach-check-btn" onclick="triggerCoachReview()" class="btn btn-purple">
                 Analyze My Consistency
             </button>
-            
+
             <div id="ai-review-box" class="ai-feedback-box" style="display: none;">
-                <p style="margin-bottom: 8px;"><strong>Evaluation:</strong> <span id="review-eval" style="color: #c084fc;">...</span></p>
+                <p style="margin-bottom: 8px;"><strong>Evaluation:</strong> <span id="review-eval"
+                        style="color: #c084fc;">...</span></p>
                 <p><strong>Coach Tip:</strong> <em id="review-tip" style="color: #e9d5ff;">...</em></p>
             </div>
         </div>
@@ -242,10 +276,11 @@
                 {{ user.insights_summary }}
             </blockquote>
         </div>
-        
-        <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+
+        <div
+            style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <a href="/" class="btn btn-link">← Logout</a>
-            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Powered by Gemini 2.5 Flash</p>
+            <p style="font-size: 12px; color: var(--text-muted); margin: 0;"></p>
         </div>
     </div>
 
@@ -263,7 +298,7 @@
         function triggerCoachReview() {
             const btn = document.getElementById('coach-check-btn');
             const box = document.getElementById('ai-review-box');
-            
+
             btn.innerText = "Analyzing trends...";
             btn.disabled = true;
             showLoadingOverlay();
@@ -292,7 +327,7 @@
             const status = document.getElementById('progress-status');
             const observation = document.getElementById('progress-observation');
             const recommendation = document.getElementById('progress-recommendation');
-            
+
             btn.innerText = "Generating summary...";
             btn.disabled = true;
             showLoadingOverlay();
@@ -327,4 +362,5 @@
         });
     </script>
 </body>
+
 </html>

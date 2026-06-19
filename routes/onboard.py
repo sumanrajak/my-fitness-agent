@@ -40,13 +40,65 @@ async def handle_onboarding_submit(
         "timeline": timeline
     }
 
+    # Check existing user to decide if this is initial onboarding or a re-analysis
+    existing_user = get_user_document(uid)
+
+    # Ensure the LLM always has both starting and current weight context
+    profile_data["starting_weight"] = existing_user.get("starting_weight") if existing_user and existing_user.get("starting_weight") else weight
+    profile_data["current_weight"] = weight
+
     # Pass data to Gemini AI Agent for calorie and context analysis
     ai_analysis = analyze_user_fitness(profile_data)
 
-    # Merge AI analysis back into the profile payload
-    profile_data["maintenance_calories"] = ai_analysis["maintenance_calories"]
-    profile_data["target_calories"] = ai_analysis["target_calories"]
-    profile_data["insights_summary"] = ai_analysis["insights_summary"]
+    # If user already exists and has a starting weight, treat this as a re-analysis
+    if existing_user and existing_user.get("starting_weight"):
+        # Do NOT overwrite starting_weight. Save current weight separately.
+        reanalysis_update = {
+            "current_weight": weight,
+            "target_weight": target_weight,
+            "activity_level": activity_level,
+            "context": context,
+            "timeline": timeline,
+            "maintenance_calories": ai_analysis.get("maintenance_calories"),
+            "target_calories": ai_analysis.get("target_calories"),
+            "daily_deficit": ai_analysis.get("daily_deficit"),
+            "insights_summary": ai_analysis.get("insights_summary"),
+            "last_reanalysis_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "reanalyze_insights": ai_analysis
+        }
+
+        # Save the reanalysis summary into the user profile (merge)
+        save_user_profile(uid, reanalysis_update)
+
+        # Also create a historical log entry in a subcollection for review later
+        try:
+            db.collection("users").document(uid).collection("reanalyze_logs").add({
+                "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                "current_weight": weight,
+                "input": {
+                    "age": age,
+                    "sex": sex,
+                    "height": height,
+                    "target_weight": target_weight,
+                    "activity_level": activity_level,
+                    "timeline": timeline,
+                    "context": context
+                },
+                "ai_insights": ai_analysis
+            })
+        except Exception:
+            # don't fail onboarding if logging the reanalysis history fails
+            pass
+
+        return RedirectResponse(url=f"/onboard/dashboard?uid={uid}", status_code=303)
+
+    # New user initial onboarding: set starting weight and save AI analysis into profile
+    profile_data["starting_weight"] = weight
+    profile_data["current_weight"] = weight
+    profile_data["maintenance_calories"] = ai_analysis.get("maintenance_calories")
+    profile_data["target_calories"] = ai_analysis.get("target_calories")
+    profile_data["daily_deficit"] = ai_analysis.get("daily_deficit")
+    profile_data["insights_summary"] = ai_analysis.get("insights_summary")
 
     # Save to Firestore
     save_user_profile(uid, profile_data)
@@ -100,6 +152,30 @@ async def reanalysis_page(request: Request, uid: str):
             "title": "Reanalyze Your Goals",
             "button_label": "Update Goals",
             "target_weight": user_data.get("target_weight", ""),
+        }
+    )
+
+
+@router.get("/reanalysis-history", response_class=HTMLResponse)
+async def reanalysis_history(request: Request, uid: str):
+    user_data = get_user_document(uid)
+    if not user_data:
+        return RedirectResponse(url="/")
+
+    # Fetch reanalysis logs from subcollection
+    try:
+        from google.cloud import firestore
+        docs = db.collection("users").document(uid).collection("reanalyze_logs").order_by("timestamp", direction=firestore.Query.DESCENDING).stream()
+        logs = [d.to_dict() for d in docs]
+    except Exception:
+        logs = []
+
+    return templates.TemplateResponse(
+        name="reanalysis_history.html",
+        request=request,
+        context={
+            "user": user_data,
+            "logs": logs
         }
     )
 

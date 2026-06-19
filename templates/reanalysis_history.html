@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reanalysis History</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Reanalysis History</h1>
+        <p style="margin-bottom: 16px; color: var(--text-muted);">All past re-analysis attempts and AI insights are recorded here.</p>
+        <div style="margin-bottom: 20px;">
+            <a href="/onboard/dashboard?uid={{ user.uid }}" class="btn btn-primary">← Back to Dashboard</a>
+        </div>
+
+        {% if logs and logs|length > 0 %}
+        <div class="card-section">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Current Weight</th>
+                        <th>Target Weight</th>
+                        <th>AI Summary</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in logs %}
+                    <tr>
+                        <td>{{ l.timestamp }}</td>
+                        <td>{{ l.current_weight }} kg</td>
+                        <td>{{ l.input.target_weight }} kg</td>
+                        <td style="max-width: 480px; font-size: 0.95rem;">{{ l.ai_insights.insights_summary or l.ai_insights }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <p style="color: var(--text-muted);">No reanalysis logs yet.</p>
+        {% endif %}
+
+    </div>
+</body>
+</html>
