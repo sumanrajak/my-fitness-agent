@@ -93,13 +93,20 @@ async def trends_page(request: Request, uid: str, days: int = 14):
         calorie_values.append(day["calories"])
         activity_values.append(day["steps"])
 
+    # Fetch all logs for the current month for the gym calendar
+    now = datetime.today()
+    start_of_month = now.replace(day=1).strftime('%Y-%m-%d')
+    month_logs = get_logs_in_range(uid, start_of_month, now.strftime('%Y-%m-%d'))
+    gym_dates = [log["date"] for log in month_logs if log.get("went_to_gym")]
+
     return templates.TemplateResponse(
         name="trends.html",
         request=request,
         context={
             "user": user_data, "dates": dates, "weight_values": weight_values,
             "calorie_values": calorie_values, "activity_values": activity_values,
-            "target_calories": user_data.get("target_calories", 0)
+            "target_calories": user_data.get("target_calories", 0),
+            "gym_dates": gym_dates
         }
     )
 

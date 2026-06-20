@@ -26,6 +26,15 @@
             <a href="/onboard/dashboard?uid={{ user.uid }}" class="btn btn-primary">← Back to Dashboard</a>
         </div>
 
+        <div class="card-section" style="margin-bottom: 30px;">
+            <h3>🏋️ Current Month Gym Calendar</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">Green blocks indicate days you successfully logged going to the gym.</p>
+            <div id="calendar" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; max-width: 400px; text-align: center;">
+                <!-- Calendar will be populated by JS -->
+            </div>
+            <p style="margin-top: 16px; font-weight: bold;">Total Gym Days This Month: <span id="gym-count" style="color: #10b981; font-size: 1.2rem;">0</span></p>
+        </div>
+
         <div class="chart-grid">
             <div class="card-section">
                 <h3>Weight Trend</h3>
@@ -140,6 +149,53 @@
                 }
             }
         });
+
+        const gymDates = {{ gym_dates | tojson | default('[]') }};
+        
+        function renderCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            let html = '';
+            
+            dayNames.forEach(day => {
+                html += `<div style="font-weight: bold; font-size: 0.8rem; color: #94a3b8; padding-bottom: 4px;">${day}</div>`;
+            });
+            
+            for (let i = 0; i < firstDay.getDay(); i++) {
+                html += `<div></div>`;
+            }
+            
+            let count = 0;
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                const isGymDay = gymDates.includes(dateStr);
+                if(isGymDay) count++;
+                
+                const bg = isGymDay ? '#10b981' : 'rgba(30, 41, 59, 0.5)';
+                const color = isGymDay ? '#fff' : '#cbd5e1';
+                const border = isGymDay ? 'none' : '1px solid rgba(148, 163, 184, 0.2)';
+                const shadow = isGymDay ? 'box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);' : '';
+                
+                html += `<div style="background: ${bg}; color: ${color}; border: ${border}; border-radius: 6px; padding: 10px 0; font-size: 0.95rem; font-weight: 500; ${shadow}">${i}</div>`;
+            }
+            
+            if(calendarEl) {
+                calendarEl.innerHTML = html;
+            }
+            const countEl = document.getElementById('gym-count');
+            if(countEl) {
+                countEl.innerText = count;
+            }
+        }
+        renderCalendar();
     </script>
 </body>
 </html>

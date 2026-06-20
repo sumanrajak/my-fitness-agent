@@ -17,6 +17,7 @@ class DailyTracking(BaseModel):
     activity_description: str = ""
     steps: int = 0
     exercise_minutes: int = 0
+    went_to_gym: bool = False
     total_consumed: int = 0
     total_protein: float = 0
     total_fiber: float = 0
@@ -30,6 +31,7 @@ class DailyCheckInForm(BaseModel):
     activity_description: str = ""
     steps: int = 0
     exercise_minutes: int = 0
+    went_to_gym: bool = False
 
 class LogCaloriesForm(BaseModel):
     uid: str

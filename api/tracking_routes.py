@@ -13,7 +13,8 @@ async def save_daily_log(
     weight: float = Form(...),
     activity_description: str = Form(""),
     steps: int = Form(0),
-    exercise_minutes: int = Form(0)
+    exercise_minutes: int = Form(0),
+    went_to_gym: bool = Form(False)
 ):
     update_data = {
         "date": date,
@@ -21,6 +22,7 @@ async def save_daily_log(
         "activity_description": activity_description,
         "steps": steps,
         "exercise_minutes": exercise_minutes,
+        "went_to_gym": went_to_gym,
     }
     save_daily_checkin(uid, date, update_data)
     return RedirectResponse(url=f"/onboard/dashboard?uid={uid}&date={date}", status_code=303)

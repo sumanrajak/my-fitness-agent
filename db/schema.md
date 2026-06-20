@@ -28,6 +28,7 @@
 - `activity_description`: string
 - `steps`: integer
 - `exercise_minutes`: integer
+- `went_to_gym`: boolean
 - `total_consumed`: integer
 - `total_protein`: float
 - `total_fiber`: float

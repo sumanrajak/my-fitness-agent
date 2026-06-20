@@ -28,7 +28,7 @@ def add_meal_log(uid: str, date: str, meal_data: dict, log_entry: dict):
     log_doc = log_ref.get()
     if log_doc.exists:
         log_ref.update({
-            "total_consumed": firestore.Increment(meal_data["calories"]),
+            "total_consumed": firestore.Increment(meal_data["estimated_calories"]),
             "total_protein": firestore.Increment(meal_data["protein"]),
             "total_fiber": firestore.Increment(meal_data["fiber"]),
             "total_carbs": firestore.Increment(meal_data["carbs"]),
@@ -37,7 +37,7 @@ def add_meal_log(uid: str, date: str, meal_data: dict, log_entry: dict):
     else:
         log_data = {
             "date": date,
-            "total_consumed": meal_data["calories"],
+            "total_consumed": meal_data["estimated_calories"],
             "total_protein": meal_data["protein"],
             "total_fiber": meal_data["fiber"],
             "total_carbs": meal_data["carbs"],
