@@ -1,21 +1,24 @@
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from routes import auth, onboard
+
+from api.auth_routes import router as auth_router
+from api.onboarding_routes import router as onboard_router
+from api.dashboard_routes import router as dashboard_router
+from api.tracking_routes import router as tracking_router
 
 app = FastAPI(title="AI Fitness Agent Blueprint")
 
-# Mount Static and Templates
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# Include Modular Routes
-app.include_router(auth.router)
-app.include_router(onboard.router)
+app.include_router(auth_router)
+app.include_router(onboard_router)
+app.include_router(dashboard_router)
+app.include_router(tracking_router)
 
 @app.get("/")
 async def root(request: Request):
-    # Redirect to login page initially
     return templates.TemplateResponse(name="login.html", request=request, context={})
 
 if __name__ == "__main__":

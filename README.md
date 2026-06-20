@@ -51,12 +51,29 @@ uvicorn main:app --reload
 ```
 The application will be accessible at `http://127.0.0.1:8000`.
 
+## 🐳 Running with Docker
+
+Alternatively, you can run the entire application inside a Docker container.
+
+### 1. Build the Docker Image
+```bash
+docker build -t fitness-agent .
+```
+
+### 2. Run the Container
+Ensure your `.env` file is populated with your API keys. Then, map your environment file and the port to the container:
+```bash
+docker run -p 8000:8000 --env-file .env -v $(pwd)/config/serviceAccountKey.json:/app/config/serviceAccountKey.json fitness-agent
+```
+The app will now be available at `http://127.0.0.1:8000`.
+
 ## Project Structure
 - `main.py`: Application entry point, router inclusion, and static/template mounting.
-- `routes/auth.py`: User registration and login logic via Firebase REST API.
-- `routes/onboard.py`: Core logic for onboarding, dashboard rendering, daily logging, AI reviews, and reporting.
-- `services/gemini_service.py`: Encapsulates Gemini AI calls, deterministic calorie math, and fallback logic.
-- `services/firebase_service.py`: Handles Firebase/Firestore initialization and user data queries.
-- `config/settings.py`: Environment variable and configuration management.
+- `api/`: Modular FastAPI routers for authentication, onboarding, dashboard, and tracking.
+- `services/`: Business logic decoupling DB access (`user_service.py`, `tracking_service.py`) and LLM processing (`ai_service.py`).
+- `schemas/`: Pydantic models for request/response validation.
+- `utils/`: Deterministic math calculations (`fitness_math.py`).
+- `core/`: Environment variables and configuration logic.
+- `db/`: Firestore setup and schema documentation.
 - `templates/`: Jinja2 HTML templates for the frontend UI.
 - `static/`: Static assets (CSS, JS, images).
