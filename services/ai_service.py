@@ -1,6 +1,7 @@
 import json
 # pyrefly: ignore [missing-import]
 from google import genai
+# pyrefly: ignore [missing-import]
 from google.genai import types
 from core.config import settings
 from utils.fitness_math import compute_calorie_plan
@@ -9,7 +10,7 @@ from schemas.ai import CoachInsight, FoodEstimation, ProgressReport, Consistency
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 FALLBACK_MODELS = [
-    "gemini-3-flash",
+ 
     "gemini-3.5-flash",
     "gemini-3.1-flash-lite",
     "gemini-2.5-flash",

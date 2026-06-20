@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from services.user_service import get_user
@@ -61,6 +61,15 @@ async def dashboard_page(request: Request, uid: str, date: str = None):
         name="dashboard.html",
         context={"user": user_data, "journey_status": journey_status, "selected_date": date, "daily_log": daily_log}
     )
+
+@router.post("/update-target-calories")
+async def update_target_calories(uid: str = Form(...), target_calories: int = Form(...), date: str = Form(None)):
+    from services.user_service import save_user
+    save_user(uid, {"target_calories": target_calories})
+    url = f"/onboard/dashboard?uid={uid}"
+    if date:
+        url += f"&date={date}"
+    return RedirectResponse(url=url, status_code=303)
 
 @router.get("/trends", response_class=HTMLResponse)
 async def trends_page(request: Request, uid: str, days: int = 14):
