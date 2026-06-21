@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Your Strategy</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .weight-timeline-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: 380px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        .weight-timeline-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .weight-timeline-container::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.1);
+            border-radius: 3px;
+        }
+        .weight-timeline-container::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+        .weight-timeline-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(59, 130, 246, 0.5);
+        }
+        .weight-timeline-item {
+            display: flex;
+            gap: 14px;
+            position: relative;
+            padding-bottom: 8px;
+        }
+        .weight-timeline-item::before {
+            content: "";
+            position: absolute;
+            left: 17px;
+            top: 30px;
+            bottom: -10px;
+            width: 2px;
+            background: var(--border-color);
+        }
+        .weight-timeline-item:last-child::before {
+            display: none;
+        }
+        .weight-timeline-dot {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bg-input);
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            z-index: 1;
+        }
+        .weight-timeline-item.active .weight-timeline-dot {
+            border-color: var(--accent-success);
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-success);
+            box-shadow: 0 0 10px var(--accent-success-glow);
+        }
+        .weight-timeline-item.active {
+            background: rgba(16, 185, 129, 0.03);
+            border-radius: var(--radius-sm);
+        }
+        .weight-timeline-content {
+            background: rgba(30, 41, 59, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            width: 100%;
+            transition: var(--transition-smooth);
+        }
+        .weight-timeline-content:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+            background: rgba(30, 41, 59, 0.5);
+        }
+        .weight-timeline-item.active .weight-timeline-content {
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+        .weight-timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .weight-timeline-title {
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 0.95rem;
+        }
+        .weight-timeline-value {
+            font-weight: 800;
+            color: var(--accent-primary);
+            font-size: 1.1rem;
+        }
+        .weight-timeline-item.active .weight-timeline-value {
+            color: var(--accent-success);
+        }
+        .weight-timeline-note {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-style: italic;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loader-card">
+            <div class="loader-dots-container">
+                <div class="loader-dot"></div>
+                <div class="loader-dot"></div>
+                <div class="loader-dot"></div>
+            </div>
+            <p>Working on your request...</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1 style="text-align: center; margin-bottom: 10px;">Your Custom AI Strategy</h1>
+        <p style="text-align: center; color: var(--text-muted); margin-bottom: 30px;">Review the insights and milestones generated for you before finalizing.</p>
+
+        <div class="card-section" style="background-color: rgba(30,41,59,0.25);">
+            <h3 style="margin-bottom: 12px;">🧠 Calculated Strategy & AI Insights</h3>
+            <blockquote class="ai-quote">
+                {{ ai_analysis.insights_summary }}
+            </blockquote>
+        </div>
+
+        <div class="metrics-grid" style="margin-bottom: 30px;">
+            <div class="metric-card bg-orange">
+                <h3>Maintenance</h3>
+                <h2>{{ ai_analysis.maintenance_calories }} kcal</h2>
+            </div>
+            <div class="metric-card bg-blue">
+                <h3>Target</h3>
+                <h2>{{ ai_analysis.target_calories }} kcal</h2>
+            </div>
+            <div class="metric-card bg-pink">
+                <h3>Daily Deficit</h3>
+                <h2>{{ ai_analysis.daily_deficit }} kcal</h2>
+            </div>
+            <div class="metric-card bg-violet">
+                <h3>Target Weight</h3>
+                <h2>{{ profile_data.target_weight }} kg</h2>
+            </div>
+        </div>
+
+        {% if ai_analysis.weight_predictions %}
+        <div class="card-section" style="border-color: rgba(139, 92, 246, 0.4);">
+            <h3 style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px; color: #c084fc;">
+                🎯 AI Projected Weight Milestones
+            </h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">
+                This week-by-week weight forecast is calculated by our AI coach based on your daily calorie target of <strong>{{ ai_analysis.target_calories }} kcal</strong>.
+            </p>
+
+            <div class="chart-grid">
+                <div>
+                    <h4 style="margin-bottom: 12px; font-size: 0.95rem; color: #c084fc; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Trajectory Graph</h4>
+                    <div style="background: rgba(15, 23, 42, 0.3); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 16px; height: 320px; display: flex; align-items: center; justify-content: center; position: relative;">
+                        <canvas id="weightPredictionChart"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <h4 style="margin-bottom: 12px; font-size: 0.95rem; color: #c084fc; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Weekly Milestones</h4>
+                    <div class="weight-timeline-container">
+                        {% for pt in ai_analysis.weight_predictions %}
+                            <div class="weight-timeline-item">
+                                <div class="weight-timeline-dot">
+                                    W{{ pt.week }}
+                                </div>
+                                <div class="weight-timeline-content">
+                                    <div class="weight-timeline-header">
+                                        <span class="weight-timeline-title">Week {{ pt.week }}</span>
+                                        <span class="weight-timeline-value">{{ pt.weight }} kg</span>
+                                    </div>
+                                    <p class="weight-timeline-note">{{ pt.milestone_note }}</p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div style="margin-top: 40px; background: rgba(30, 41, 59, 0.5); padding: 24px; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; gap: 16px;">
+            <h3 style="margin: 0;">Ready to commit?</h3>
+            <form action="/onboard/confirm" method="POST" style="width: 100%; display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+                <!-- Profile Data -->
+                <input type="hidden" name="uid" value="{{ profile_data.uid }}">
+                <input type="hidden" name="email" value="{{ profile_data.email }}">
+                <input type="hidden" name="age" value="{{ profile_data.age }}">
+                <input type="hidden" name="sex" value="{{ profile_data.sex }}">
+                <input type="hidden" name="height" value="{{ profile_data.height }}">
+                <input type="hidden" name="weight" value="{{ profile_data.weight }}">
+                <input type="hidden" name="target_weight" value="{{ profile_data.target_weight }}">
+                <input type="hidden" name="activity_level" value="{{ profile_data.activity_level }}">
+                <input type="hidden" name="context" value="{{ profile_data.context }}">
+                <input type="hidden" name="timeline" value="{{ profile_data.timeline }}">
+                
+                <!-- AI Data -->
+                <input type="hidden" name="maintenance_calories" value="{{ ai_analysis.maintenance_calories }}">
+                <input type="hidden" name="target_calories" value="{{ ai_analysis.target_calories }}">
+                <input type="hidden" name="daily_deficit" value="{{ ai_analysis.daily_deficit }}">
+                <input type="hidden" name="insights_summary" value="{{ ai_analysis.insights_summary }}">
+                <input type="hidden" name="weight_predictions_json" value="{{ weight_predictions_json }}">
+                <input type="hidden" name="is_reanalysis" value="{{ is_reanalysis }}">
+
+                <button type="button" class="btn btn-dark" onclick="history.back()" style="padding: 14px 24px;">← Edit Info</button>
+                <button type="submit" class="btn btn-success" style="padding: 14px 40px; font-size: 1.1rem;">Accept & Start Journey ✨</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function showLoadingOverlay() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) overlay.classList.add('active');
+        }
+
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', showLoadingOverlay);
+        });
+
+        // Initialize predicted weight chart if predictions exist
+        {% if ai_analysis.weight_predictions %}
+        (function() {
+            const predLabels = [];
+            const predWeightData = [];
+            
+            {% for pt in ai_analysis.weight_predictions %}
+                predLabels.push("Week {{ pt.week }}");
+                predWeightData.push({{ pt.weight }});
+            {% endfor %}
+
+            const ctx = document.getElementById('weightPredictionChart');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: predLabels,
+                        datasets: [{
+                            label: 'Predicted Weight (kg)',
+                            data: predWeightData,
+                            borderColor: '#a78bfa',
+                            backgroundColor: 'rgba(167, 139, 250, 0.15)',
+                            tension: 0.35,
+                            fill: true,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#8b5cf6',
+                            borderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { ticks: { color: '#cbd5e1' }, grid: { display: false } },
+                            y: { ticks: { color: '#cbd5e1' }, grid: { color: 'rgba(148,163,184,0.1)' } }
+                        }
+                    }
+                });
+            }
+        })();
+        {% endif %}
+    </script>
+</body>
+</html>

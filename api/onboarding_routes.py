@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 from fastapi import APIRouter, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -14,6 +15,7 @@ async def onboarding_page(request: Request, uid: str, email: str = ""):
 
 @router.post("/submit")
 async def handle_onboarding_submit(
+    request: Request,
     uid: str = Form(...),
     email: str = Form(...),
     age: int = Form(...),
@@ -41,21 +43,68 @@ async def handle_onboarding_submit(
     existing_user = get_user(uid)
     profile_data["starting_weight"] = existing_user.get("starting_weight") if existing_user and existing_user.get("starting_weight") else weight
     profile_data["current_weight"] = weight
+    profile_data["is_reanalysis"] = bool(existing_user and existing_user.get("starting_weight"))
+    profile_data["journey_start_date"] = existing_user.get("journey_start_date") if existing_user else None
 
     ai_analysis = analyze_user_fitness(profile_data)
+    
+    weight_predictions_json = json.dumps(ai_analysis.get("weight_predictions", []))
+    ai_analysis_copy = ai_analysis.copy()
 
-    if existing_user and existing_user.get("starting_weight"):
+    return templates.TemplateResponse(
+        name="strategy_review.html",
+        request=request,
+        context={
+            "profile_data": profile_data,
+            "ai_analysis": ai_analysis_copy,
+            "weight_predictions_json": weight_predictions_json,
+            "is_reanalysis": "true" if (existing_user and existing_user.get("starting_weight")) else "false"
+        }
+    )
+
+@router.post("/confirm")
+async def handle_onboarding_confirm(
+    uid: str = Form(...),
+    email: str = Form(...),
+    age: int = Form(...),
+    sex: str = Form(...),
+    height: float = Form(...),
+    weight: float = Form(...),
+    target_weight: float = Form(...),
+    activity_level: str = Form(...),
+    context: str = Form(...),
+    timeline: str = Form(...),
+    maintenance_calories: int = Form(...),
+    target_calories: int = Form(...),
+    daily_deficit: int = Form(...),
+    insights_summary: str = Form(...),
+    weight_predictions_json: str = Form(...),
+    is_reanalysis: str = Form(...)
+):
+    weight_predictions = json.loads(weight_predictions_json)
+    
+    is_reanalysis_bool = is_reanalysis.lower() == 'true'
+    
+    ai_analysis = {
+        "maintenance_calories": maintenance_calories,
+        "target_calories": target_calories,
+        "daily_deficit": daily_deficit,
+        "insights_summary": insights_summary,
+        "weight_predictions": weight_predictions
+    }
+
+    if is_reanalysis_bool:
         reanalysis_update = {
             "current_weight": weight,
             "target_weight": target_weight,
             "activity_level": activity_level,
             "context": context,
             "timeline": timeline,
-            "maintenance_calories": ai_analysis.get("maintenance_calories"),
-            "target_calories": ai_analysis.get("target_calories"),
-            "daily_deficit": ai_analysis.get("daily_deficit"),
-            "insights_summary": ai_analysis.get("insights_summary"),
-            "weight_predictions": ai_analysis.get("weight_predictions"),
+            "maintenance_calories": maintenance_calories,
+            "target_calories": target_calories,
+            "daily_deficit": daily_deficit,
+            "insights_summary": insights_summary,
+            "weight_predictions": weight_predictions,
             "last_reanalysis_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             "reanalyze_insights": ai_analysis
         }
@@ -78,13 +127,25 @@ async def handle_onboarding_submit(
         log_reanalysis_history(uid, log_data)
         return RedirectResponse(url=f"/onboard/dashboard?uid={uid}", status_code=303)
 
-    profile_data["starting_weight"] = weight
-    profile_data["current_weight"] = weight
-    profile_data["maintenance_calories"] = ai_analysis.get("maintenance_calories")
-    profile_data["target_calories"] = ai_analysis.get("target_calories")
-    profile_data["daily_deficit"] = ai_analysis.get("daily_deficit")
-    profile_data["insights_summary"] = ai_analysis.get("insights_summary")
-    profile_data["weight_predictions"] = ai_analysis.get("weight_predictions")
+    profile_data = {
+        "uid": uid,
+        "email": email,
+        "age": age,
+        "sex": sex,
+        "height": height,
+        "weight": weight,
+        "target_weight": target_weight,
+        "activity_level": activity_level,
+        "context": context,
+        "timeline": timeline,
+        "starting_weight": weight,
+        "current_weight": weight,
+        "maintenance_calories": maintenance_calories,
+        "target_calories": target_calories,
+        "daily_deficit": daily_deficit,
+        "insights_summary": insights_summary,
+        "weight_predictions": weight_predictions
+    }
 
     save_user(uid, profile_data)
     return RedirectResponse(url=f"/onboard/dashboard?uid={uid}", status_code=303)
@@ -118,7 +179,8 @@ async def reanalysis_page(request: Request, uid: str):
             "age": user_data.get("age", ""),
             "sex": user_data.get("sex", ""),
             "height": user_data.get("height", ""),
-            "weight": user_data.get("weight", ""),
+            "weight": user_data.get("current_weight", user_data.get("weight", "")),
+            "starting_weight": user_data.get("starting_weight", ""),
             "activity_level": user_data.get("activity_level", ""),
             "context": user_data.get("context", ""),
             "timeline": user_data.get("timeline", ""),

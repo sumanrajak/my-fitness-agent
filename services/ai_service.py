@@ -44,8 +44,12 @@ def analyze_user_fitness(profile_data: dict) -> dict:
     plan = compute_calorie_plan(profile_data)
     
     starting_weight = profile_data.get("starting_weight") or profile_data.get("weight") or 0.0
+    current_weight = profile_data.get("current_weight") or starting_weight
+    is_reanalysis = profile_data.get("is_reanalysis", False)
+    journey_start_date = profile_data.get("journey_start_date")
+
     weeks_count = max(1, round(plan["days_remaining"] / 7))
-    expected_final_weight = round(starting_weight - plan["achievable_kg_by_deadline"], 1)
+    expected_final_weight = round(current_weight - plan["achievable_kg_by_deadline"], 1)
 
     if plan["goal_feasible"]:
         feasibility_note = (
@@ -71,33 +75,64 @@ def analyze_user_fitness(profile_data: dict) -> dict:
             "a default of 12 weeks was used. Ask the user to confirm or clarify their deadline."
         )
 
-    prompt = f"""
-    You are an expert fitness coach. Write a short, honest, encouraging insights
-    summary for this user based ONLY on the following already-calculated facts.
-    Do not recalculate, second-guess, or override any of these numbers — your job
-    is only to explain them clearly and motivate the user.
+    if is_reanalysis:
+        prompt = f"""
+        You are an expert fitness coach. The user is RE-ANALYZING their goals mid-journey.
+        They started their journey on {journey_start_date or 'an earlier date'} at {starting_weight} kg.
+        Their CURRENT weight is {current_weight} kg today.
 
-    Facts:
-    - Maintenance calories: {plan['maintenance_calories']} kcal/day
-    - Target calories: {plan['target_calories']} kcal/day
-    - Daily deficit being used: {plan['actual_daily_deficit']} kcal
-    - Deficit that would be required to hit the original goal exactly: {plan['required_daily_deficit']} kcal
-    - Days remaining until deadline: {plan['days_remaining']}
-    - Weight loss requested: {plan['kg_to_lose_requested']} kg
-    - Realistically achievable weight loss by deadline: {plan['achievable_kg_by_deadline']} kg
-    - Starting weight: {starting_weight} kg
-    - Personal context from the user: {profile_data.get('context')}
+        Write a short, honest, encouraging insights summary for this user based ONLY on the following updated facts.
+        Acknowledge their progress (or lack thereof) from their starting weight of {starting_weight} kg, 
+        and motivate them for the updated plan ahead. Do not recalculate these numbers — your job
+        is only to explain them clearly and motivate the user.
 
-    {feasibility_note}
+        Facts:
+        - Maintenance calories: {plan['maintenance_calories']} kcal/day
+        - New Target calories: {plan['target_calories']} kcal/day
+        - Daily deficit being used: {plan['actual_daily_deficit']} kcal
+        - Days remaining until deadline: {plan['days_remaining']}
+        - New Goal: lose {plan['kg_to_lose_requested']} kg more
+        - Realistically achievable remaining weight loss by deadline: {plan['achievable_kg_by_deadline']} kg
+        - Updated context from the user: {profile_data.get('context')}
 
-    Additionally, generate week-by-week weight predictions starting from Week 0 up to Week {weeks_count}.
-    Instructions for `weight_predictions`:
-    - Create exactly {weeks_count + 1} points, from Week 0 to Week {weeks_count}.
-    - Week 0 weight MUST be exactly {starting_weight} kg.
-    - Week {weeks_count} weight MUST be exactly {expected_final_weight} kg.
-    - For weeks 1 to {weeks_count - 1}, calculate a realistic weight decay curve between {starting_weight} kg and {expected_final_weight} kg.
-    - For each week, provide a short, motivating, and personalized `milestone_note` tailored to the user's goal and context (e.g. if they mentioned gym, specific food preferences, fitness milestones, refer to it organically).
-    """
+        {feasibility_note}
+
+        Additionally, generate NEW week-by-week weight predictions starting from Week 0 up to Week {weeks_count}.
+        Instructions for `weight_predictions`:
+        - Create exactly {weeks_count + 1} points, from Week 0 to Week {weeks_count}.
+        - Week 0 weight MUST be exactly the CURRENT weight of {current_weight} kg.
+        - Week {weeks_count} weight MUST be exactly {expected_final_weight} kg.
+        - For weeks 1 to {weeks_count - 1}, calculate a realistic weight decay curve between {current_weight} kg and {expected_final_weight} kg.
+        - For each week, provide a short, motivating, and personalized `milestone_note` acknowledging their mid-journey progress.
+        """
+    else:
+        prompt = f"""
+        You are an expert fitness coach. Write a short, honest, encouraging insights
+        summary for this user starting their journey based ONLY on the following already-calculated facts.
+        Do not recalculate, second-guess, or override any of these numbers — your job
+        is only to explain them clearly and motivate the user.
+
+        Facts:
+        - Maintenance calories: {plan['maintenance_calories']} kcal/day
+        - Target calories: {plan['target_calories']} kcal/day
+        - Daily deficit being used: {plan['actual_daily_deficit']} kcal
+        - Deficit that would be required to hit the original goal exactly: {plan['required_daily_deficit']} kcal
+        - Days remaining until deadline: {plan['days_remaining']}
+        - Weight loss requested: {plan['kg_to_lose_requested']} kg
+        - Realistically achievable weight loss by deadline: {plan['achievable_kg_by_deadline']} kg
+        - Starting weight: {starting_weight} kg
+        - Personal context from the user: {profile_data.get('context')}
+
+        {feasibility_note}
+
+        Additionally, generate week-by-week weight predictions starting from Week 0 up to Week {weeks_count}.
+        Instructions for `weight_predictions`:
+        - Create exactly {weeks_count + 1} points, from Week 0 to Week {weeks_count}.
+        - Week 0 weight MUST be exactly {starting_weight} kg.
+        - Week {weeks_count} weight MUST be exactly {expected_final_weight} kg.
+        - For weeks 1 to {weeks_count - 1}, calculate a realistic weight decay curve between {starting_weight} kg and {expected_final_weight} kg.
+        - For each week, provide a short, motivating, and personalized `milestone_note` tailored to the user's goal and context (e.g. if they mentioned gym, specific food preferences, fitness milestones, refer to it organically).
+        """
 
     result = _generate_with_model_fallback(prompt, CoachInsight, temperature=0.3)
 

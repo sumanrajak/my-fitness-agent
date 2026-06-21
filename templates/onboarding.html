@@ -42,6 +42,14 @@
                 <input type="number" name="height" step="0.1" value="{{ height or '' }}" required>
             </div>
 
+            {% if starting_weight %}
+            <div class="form-group">
+                <label>Starting Weight (kg):</label>
+                <input type="number" step="0.1" value="{{ starting_weight }}" disabled style="background-color: var(--bg-body); cursor: not-allowed; opacity: 0.7; border-color: var(--border-color);">
+                <small style="color: var(--text-muted);">Your original starting weight cannot be edited here.</small>
+            </div>
+            {% endif %}
+
             <div class="form-group">
                 <label>Current Weight (kg):</label>
                 <input type="number" name="weight" step="0.1" value="{{ weight or '' }}" required>
