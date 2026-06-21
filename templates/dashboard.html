@@ -6,6 +6,113 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your AI Fitness Dashboard</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .weight-timeline-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: 380px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        .weight-timeline-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .weight-timeline-container::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.1);
+            border-radius: 3px;
+        }
+        .weight-timeline-container::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+        .weight-timeline-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(59, 130, 246, 0.5);
+        }
+        .weight-timeline-item {
+            display: flex;
+            gap: 14px;
+            position: relative;
+            padding-bottom: 8px;
+        }
+        .weight-timeline-item::before {
+            content: "";
+            position: absolute;
+            left: 17px;
+            top: 30px;
+            bottom: -10px;
+            width: 2px;
+            background: var(--border-color);
+        }
+        .weight-timeline-item:last-child::before {
+            display: none;
+        }
+        .weight-timeline-dot {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bg-input);
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            z-index: 1;
+        }
+        .weight-timeline-item.active .weight-timeline-dot {
+            border-color: var(--accent-success);
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-success);
+            box-shadow: 0 0 10px var(--accent-success-glow);
+        }
+        .weight-timeline-item.active {
+            background: rgba(16, 185, 129, 0.03);
+            border-radius: var(--radius-sm);
+        }
+        .weight-timeline-content {
+            background: rgba(30, 41, 59, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            width: 100%;
+            transition: var(--transition-smooth);
+        }
+        .weight-timeline-content:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+            background: rgba(30, 41, 59, 0.5);
+        }
+        .weight-timeline-item.active .weight-timeline-content {
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+        .weight-timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .weight-timeline-title {
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 0.95rem;
+        }
+        .weight-timeline-value {
+            font-weight: 800;
+            color: var(--accent-primary);
+            font-size: 1.1rem;
+        }
+        .weight-timeline-item.active .weight-timeline-value {
+            color: var(--accent-success);
+        }
+        .weight-timeline-note {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-style: italic;
+            line-height: 1.4;
+        }
+    </style>
 </head>
 
 <body>
@@ -119,6 +226,66 @@
                 <span style="color: #fde68a; font-size: 1.1rem; font-weight: bold;">{{ daily_log.total_carbs|round(1) }}g</span>
             </div>
         </div>
+
+        {% if user.journey_start_date %}
+        {% if user.weight_predictions %}
+        <div class="card-section" style="border-color: rgba(139, 92, 246, 0.4);">
+            <h3 style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px; color: #c084fc;">
+                🎯 AI Projected Weight Milestones
+            </h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">
+                This week-by-week weight forecast is calculated by our AI coach based on your daily calorie target of <strong>{{ user.target_calories }} kcal</strong>. Stay consistent to hit each target!
+            </p>
+
+            <div class="chart-grid">
+                <div>
+                    <h4 style="margin-bottom: 12px; font-size: 0.95rem; color: #c084fc; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Trajectory Graph</h4>
+                    <div style="background: rgba(15, 23, 42, 0.3); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 16px; height: 320px; display: flex; align-items: center; justify-content: center; position: relative;">
+                        <canvas id="weightPredictionChart"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <h4 style="margin-bottom: 12px; font-size: 0.95rem; color: #c084fc; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Weekly Milestones</h4>
+                    <div class="weight-timeline-container">
+                        {% set current_week = journey_status.week_number|default(0)|int %}
+                        {% for pt in user.weight_predictions %}
+                            {% set is_past = pt.week < current_week %}
+                            {% set is_current = pt.week == current_week %}
+                            {% set is_future = pt.week > current_week %}
+                            <div class="weight-timeline-item {% if is_current %}active{% endif %}">
+                                <div class="weight-timeline-dot">
+                                    {% if is_past %}
+                                        ✓
+                                    {% else %}
+                                        W{{ pt.week }}
+                                    {% endif %}
+                                </div>
+                                <div class="weight-timeline-content">
+                                    <div class="weight-timeline-header">
+                                        <span class="weight-timeline-title">
+                                            Week {{ pt.week }}
+                                            {% if is_current %}
+                                                <span style="background: var(--accent-success); color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px; margin-left: 6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);">Current</span>
+                                            {% endif %}
+                                        </span>
+                                        <span class="weight-timeline-value">{{ pt.weight }} kg</span>
+                                    </div>
+                                    <p class="weight-timeline-note">{{ pt.milestone_note }}</p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="card-section" style="background-color: rgba(30, 41, 59, 0.25);">
+            <h3 style="margin-bottom: 8px;">📈 Estimated Weight Prediction</h3>
+            <p style="margin-bottom: 15px;">No estimated weight predictions found. Try reanalyzing your goals to get a week-by-week weight prediction path!</p>
+            <a href="/onboard/reanalysis?uid={{ user.uid }}" class="btn btn-purple">Generate Weight Predictions</a>
+        </div>
+        {% endif %}
+        {% endif %}
 
         <div class="card-section">
             <h3>Log Food via AI Assistant</h3>
@@ -304,6 +471,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         function showLoadingOverlay() {
             const overlay = document.getElementById('loadingOverlay');
@@ -380,7 +548,52 @@
         document.querySelectorAll('form').forEach(form => {
             form.addEventListener('submit', showLoadingOverlay);
         });
+
+        // Initialize predicted weight chart if predictions exist
+        {% if user.weight_predictions %}
+        (function() {
+            const predLabels = [];
+            const predWeightData = [];
+            
+            {% for pt in user.weight_predictions %}
+                predLabels.push("Week {{ pt.week }}");
+                predWeightData.push({{ pt.weight }});
+            {% endfor %}
+
+            const ctx = document.getElementById('weightPredictionChart');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: predLabels,
+                        datasets: [{
+                            label: 'Predicted Weight (kg)',
+                            data: predWeightData,
+                            borderColor: '#a78bfa',
+                            backgroundColor: 'rgba(167, 139, 250, 0.15)',
+                            tension: 0.35,
+                            fill: true,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#8b5cf6',
+                            borderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { ticks: { color: '#cbd5e1' }, grid: { display: false } },
+                            y: { ticks: { color: '#cbd5e1' }, grid: { color: 'rgba(148,163,184,0.1)' } }
+                        }
+                    }
+                });
+            }
+        })();
+        {% endif %}
     </script>
 </body>
-
 </html>

@@ -55,6 +55,7 @@ async def handle_onboarding_submit(
             "target_calories": ai_analysis.get("target_calories"),
             "daily_deficit": ai_analysis.get("daily_deficit"),
             "insights_summary": ai_analysis.get("insights_summary"),
+            "weight_predictions": ai_analysis.get("weight_predictions"),
             "last_reanalysis_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             "reanalyze_insights": ai_analysis
         }
@@ -83,6 +84,7 @@ async def handle_onboarding_submit(
     profile_data["target_calories"] = ai_analysis.get("target_calories")
     profile_data["daily_deficit"] = ai_analysis.get("daily_deficit")
     profile_data["insights_summary"] = ai_analysis.get("insights_summary")
+    profile_data["weight_predictions"] = ai_analysis.get("weight_predictions")
 
     save_user(uid, profile_data)
     return RedirectResponse(url=f"/onboard/dashboard?uid={uid}", status_code=303)

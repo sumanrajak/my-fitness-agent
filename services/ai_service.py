@@ -42,6 +42,10 @@ def _generate_with_model_fallback(prompt: str, response_schema, temperature: flo
 
 def analyze_user_fitness(profile_data: dict) -> dict:
     plan = compute_calorie_plan(profile_data)
+    
+    starting_weight = profile_data.get("starting_weight") or profile_data.get("weight") or 0.0
+    weeks_count = max(1, round(plan["days_remaining"] / 7))
+    expected_final_weight = round(starting_weight - plan["achievable_kg_by_deadline"], 1)
 
     if plan["goal_feasible"]:
         feasibility_note = (
@@ -81,11 +85,18 @@ def analyze_user_fitness(profile_data: dict) -> dict:
     - Days remaining until deadline: {plan['days_remaining']}
     - Weight loss requested: {plan['kg_to_lose_requested']} kg
     - Realistically achievable weight loss by deadline: {plan['achievable_kg_by_deadline']} kg
+    - Starting weight: {starting_weight} kg
     - Personal context from the user: {profile_data.get('context')}
 
     {feasibility_note}
 
-    Return valid JSON with exactly one key: insights_summary.
+    Additionally, generate week-by-week weight predictions starting from Week 0 up to Week {weeks_count}.
+    Instructions for `weight_predictions`:
+    - Create exactly {weeks_count + 1} points, from Week 0 to Week {weeks_count}.
+    - Week 0 weight MUST be exactly {starting_weight} kg.
+    - Week {weeks_count} weight MUST be exactly {expected_final_weight} kg.
+    - For weeks 1 to {weeks_count - 1}, calculate a realistic weight decay curve between {starting_weight} kg and {expected_final_weight} kg.
+    - For each week, provide a short, motivating, and personalized `milestone_note` tailored to the user's goal and context (e.g. if they mentioned gym, specific food preferences, fitness milestones, refer to it organically).
     """
 
     result = _generate_with_model_fallback(prompt, CoachInsight, temperature=0.3)
@@ -98,6 +109,7 @@ def analyze_user_fitness(profile_data: dict) -> dict:
         "achievable_kg_by_deadline": plan["achievable_kg_by_deadline"],
         "days_remaining": plan["days_remaining"],
         "insights_summary": result.get("insights_summary", ""),
+        "weight_predictions": result.get("weight_predictions", []),
     }
 
 def estimate_food_calories(food_text: str) -> dict:
