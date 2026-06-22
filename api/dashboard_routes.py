@@ -40,6 +40,20 @@ async def dashboard_page(request: Request, uid: str, date: str = None):
             journey_status["day_number"] = "Before Start"
             journey_status["week_number"] = 0
 
+        # --- NEW CODE: Format dates for the AI weight milestones timeline ---
+        if "weight_predictions" in user_data:
+            # Create a copy or update directly depending on whether data models are dicts/objects
+            for pt in user_data["weight_predictions"]:
+                try:
+                    week_num = int(pt.get("week", 0))
+                    # Calculate calendar date: start_date + (week_number * 7 days)
+                    milestone_dt = start_dt + timedelta(days=week_num * 7)
+                    # Format nicely like "Aug 30"
+                    pt["formatted_date"] = milestone_dt.strftime('%b %d')
+                except (ValueError, TypeError):
+                    pt["formatted_date"] = None
+        # --------------------------------------------------------------------
+
         log_data = get_daily_log(uid, date)
         if log_data:
             daily_log = log_data
@@ -61,7 +75,6 @@ async def dashboard_page(request: Request, uid: str, date: str = None):
         name="dashboard.html",
         context={"user": user_data, "journey_status": journey_status, "selected_date": date, "daily_log": daily_log}
     )
-
 @router.post("/update-target-calories")
 async def update_target_calories(uid: str = Form(...), target_calories: int = Form(...), date: str = Form(None)):
     from services.user_service import save_user
