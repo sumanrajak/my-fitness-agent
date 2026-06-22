@@ -247,7 +247,7 @@
                 <div>
                     <h4 style="margin-bottom: 12px; font-size: 0.95rem; color: #c084fc; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Weekly Milestones</h4>
                     <div class="weight-timeline-container">
-                        {% set current_week = journey_status.week_number|default(0)|int %}
+                        {% set current_week = journey_status.week_number-1|default(0)|int %}
                         {% for pt in user.weight_predictions %}
                             {% set is_past = pt.week < current_week %}
                             {% set is_current = pt.week == current_week %}
