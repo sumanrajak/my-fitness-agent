@@ -75,6 +75,9 @@ def analyze_user_fitness(profile_data: dict) -> dict:
             "a default of 12 weeks was used. Ask the user to confirm or clarify their deadline."
         )
 
+    from datetime import datetime
+    prediction_start_date = datetime.today().strftime('%Y-%m-%d')
+
     if is_reanalysis:
         prompt = f"""
         You are an expert fitness coach. The user is RE-ANALYZING their goals mid-journey.
@@ -104,6 +107,7 @@ def analyze_user_fitness(profile_data: dict) -> dict:
         - Week {weeks_count} weight MUST be exactly {expected_final_weight} kg.
         - For weeks 1 to {weeks_count - 1}, calculate a realistic weight decay curve between {current_weight} kg and {expected_final_weight} kg.
         - For each week, provide a short, motivating, and personalized `milestone_note` acknowledging their mid-journey progress.
+        - Calculate the calendar date for each week. Week 0 date MUST be exactly '{prediction_start_date}' (YYYY-MM-DD), and each subsequent week's date MUST be exactly 7 days after the previous week's date. Set the `date` field in 'YYYY-MM-DD' format.
         """
     else:
         prompt = f"""
@@ -132,6 +136,7 @@ def analyze_user_fitness(profile_data: dict) -> dict:
         - Week {weeks_count} weight MUST be exactly {expected_final_weight} kg.
         - For weeks 1 to {weeks_count - 1}, calculate a realistic weight decay curve between {starting_weight} kg and {expected_final_weight} kg.
         - For each week, provide a short, motivating, and personalized `milestone_note` tailored to the user's goal and context (e.g. if they mentioned gym, specific food preferences, fitness milestones, refer to it organically).
+        - Calculate the calendar date for each week. Week 0 date MUST be exactly '{prediction_start_date}' (YYYY-MM-DD), and each subsequent week's date MUST be exactly 7 days after the previous week's date. Set the `date` field in 'YYYY-MM-DD' format.
         """
 
     result = _generate_with_model_fallback(prompt, CoachInsight, temperature=0.3)
@@ -172,6 +177,17 @@ def analyze_progress_report(user_data: dict, daily_log: dict, selected_date: str
     activity_description = daily_log.get("activity_description", "No activity details provided.")
     timeline = user_data.get("timeline", "unspecified timeline")
 
+    # Format food logs detail
+    food_logs = daily_log.get("logs", [])
+    food_details = ""
+    if food_logs:
+        food_details = "\n".join([
+            f"  - [{item.get('meal_type')}] {item.get('input_text') or 'Logged Meal'} ({item.get('calories')} kcal, Protein: {item.get('protein', 0)}g, Fiber: {item.get('fiber', 0)}g, Carbs: {item.get('carbs', 0)}g)"
+            for item in food_logs
+        ])
+    else:
+        food_details = "  - No food items logged today."
+
     prompt = f"""
     You are an expert fitness coach. Create a day-wise progress report for a client using these details.
 
@@ -195,11 +211,14 @@ def analyze_progress_report(user_data: dict, daily_log: dict, selected_date: str
     - Steps: {steps}
     - Exercise Minutes: {exercise_minutes}
     - Activity Notes: {activity_description}
+    - Food Items Logged:
+{food_details}
 
-    Return valid JSON with exactly three keys:
-    1. "status_summary"
-    2. "change_observation"
-    3. "coach_recommendation"
+    Return valid JSON with exactly four keys:
+    1. "status_summary": overall summary of the day's fitness stats
+    2. "change_observation": observations on weight and activity
+    3. "coach_recommendation": guidance for next steps/activity
+    4. "diet_analysis": Evaluate the food choices the client logged today. Specifically identify which choices were good (e.g. high protein, low calorie density, high fiber, single-ingredient whole foods) and which choices were bad (e.g. sugary foods, ultra-processed options, empty calories). Provide suggestions on how the client can make better, healthier food choices to hit their targets.
     """
 
     return _generate_with_model_fallback(prompt, ProgressReport, temperature=0.3)
@@ -230,35 +249,72 @@ def analyze_consistency_review(user_data: dict, recent_summaries: list = None) -
     """
     return _generate_with_model_fallback(prompt, ConsistencyReview, temperature=0.25)
 
-def analyze_weekly_report(daily_summaries: list, target_daily: int, total_consumed: int, estimated_weight_loss: float, user_data: dict = None) -> dict:
-    total_target = target_daily * len(daily_summaries) if daily_summaries else target_daily * 7
-    net_deficit = total_target - total_consumed
+def analyze_weekly_report(daily_summaries: list, target_daily: int, total_consumed: int, estimated_weight_loss: float, user_data: dict = None, weight_stats: dict = None) -> dict:
+    maintenance_daily = user_data.get("maintenance_calories", 0) if user_data else 0
+    total_maintenance = maintenance_daily * len(daily_summaries) if daily_summaries else maintenance_daily * 7
+    actual_deficit = total_maintenance - total_consumed
+    mathematical_weight_loss = actual_deficit / 7700.0
 
-    daily_breakdown = "\n".join([f"  {d['date']}: {d['total_consumed']} kcal" for d in daily_summaries])
+    # Calculate actual weight change from first and last logged weights
+    weights = [d.get("weight") for d in daily_summaries if d.get("weight") is not None]
+    actual_weight_change = None
+    if len(weights) >= 2:
+        actual_weight_change = round(weights[0] - weights[-1], 2)
+    elif len(weights) == 1 and user_data:
+        starting_w = user_data.get("starting_weight") or user_data.get("weight")
+        if starting_w:
+            actual_weight_change = round(starting_w - weights[0], 2)
+
+    daily_breakdown = "\n".join([
+        f"  {d['date']}: Consumed {d['total_consumed']} kcal, Weight: {d.get('weight') or 'Not Logged'} kg, Protein: {d.get('total_protein', 0)}g"
+        for d in daily_summaries
+    ])
+
+    weight_context = ""
+    if weight_stats:
+        lowest_weight = weight_stats.get("lowest_weight")
+        highest_weight = weight_stats.get("highest_weight")
+        difference = weight_stats.get("difference")
+        if lowest_weight is not None and highest_weight is not None and difference is not None:
+            weight_context = f"""
+    User Weight Range (logged history):
+    - Lowest logged weight: {lowest_weight} kg
+    - Highest logged weight: {highest_weight} kg
+    - Difference between highest and lowest: {difference} kg
+            """
+        else:
+            weight_context = """
+    User Weight Range (logged history):
+    - No weight logs available yet.
+            """
 
     user_context = f"""
     User Profile:
     - Current Weight: {user_data.get('current_weight', 'N/A')} kg
     - Target Weight: {user_data.get('target_weight', 'N/A')} kg
-    - Maintenance Calories: {user_data.get('maintenance_calories', 'N/A')} kcal
-    - Target Calories: {user_data.get('target_calories', 'N/A')} kcal
+    - Maintenance Calories: {maintenance_daily} kcal/day
+    - Target Calories: {user_data.get('target_calories', 'N/A')} kcal/day
     """ if user_data else ""
 
     prompt = f"""
-    You are an expert fitness coach analyzing a client's weekly calorie tracking performance.
+    You are an expert fitness coach analyzing a client's weekly calorie and weight tracking performance.
     {user_context}
 
-    Weekly Summary:
-    - Daily Target: {target_daily} kcal
-    - Total Weekly Target: {total_target} kcal
-    - Total Consumed: {total_consumed} kcal
-    - Net Deficit: {net_deficit} kcal
-    - Estimated Weight Loss/Gain: {round(estimated_weight_loss, 2)} kg
+    Weekly Summary & Calculations:
+    - Daily Target (Calorie Limit): {target_daily} kcal/day
+    {weight_context}
+    - Total Maintenance Calories (over {len(daily_summaries)} days): {total_maintenance} kcal
+    - Total Consumed Calories: {total_consumed} kcal
+    - Actual Calorie Deficit (Relative to Maintenance): {actual_deficit} kcal
+    - Mathematical Expected Weight Loss: {round(mathematical_weight_loss, 2)} kg
+    - Actual Weight Lost/Changed (based on logs): {actual_weight_change if actual_weight_change is not None else 'Insufficient logs'} kg
 
     Daily Breakdown:
     {daily_breakdown}
 
-    Provide a detailed weekly analysis in JSON format with:
+    Provide a detailed weekly analysis in JSON format.
+    Your analysis MUST evaluate the mathematical expected weight loss against the actual weight change, and explain any discrepancies (e.g. water weight retention, metabolic adaptation, or inconsistency in logging/activity).
+    Return valid JSON with:
     1. "status_summary"
     2. "coach_verdict"
     3. "detailed_insights"

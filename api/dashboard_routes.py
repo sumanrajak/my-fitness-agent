@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from services.user_service import get_user
-from services.tracking_service import get_daily_log, get_logs_in_range
+from services.tracking_service import get_daily_log, get_logs_in_range, get_weight_range_stats
 from services.ai_service import analyze_weekly_report, analyze_consistency_review, analyze_progress_report
 
 router = APIRouter(prefix="/onboard", tags=["Dashboard"])
@@ -19,6 +19,22 @@ async def dashboard_page(request: Request, uid: str, date: str = None):
         date = datetime.today().strftime('%Y-%m-%d')
         
     journey_status = {}
+    
+    # Format the prediction dates if they exist
+    if "weight_predictions" in user_data:
+        for pt in user_data["weight_predictions"]:
+            pt_date_str = pt.get("date")
+            if pt_date_str:
+                try:
+                    pt_dt = datetime.strptime(pt_date_str, '%Y-%m-%d')
+                    pt["formatted_date"] = pt_dt.strftime('%b %d')
+                except Exception:
+                    pt["formatted_date"] = pt_date_str
+            else:
+                pt["formatted_date"] = None
+
+    weight_stats = get_weight_range_stats(uid)
+
     daily_log = {
         "breakfast": 0, "lunch": 0, "dinner": 0,
         "total_consumed": 0, "balance": user_data.get("target_calories", 0),
@@ -40,19 +56,44 @@ async def dashboard_page(request: Request, uid: str, date: str = None):
             journey_status["day_number"] = "Before Start"
             journey_status["week_number"] = 0
 
-        # --- NEW CODE: Format dates for the AI weight milestones timeline ---
+        # Determine the active week based on the selected date and the stored prediction dates
+        active_week_num = None
         if "weight_predictions" in user_data:
-            # Create a copy or update directly depending on whether data models are dicts/objects
-            for pt in user_data["weight_predictions"]:
-                try:
-                    week_num = int(pt.get("week", 0))
-                    # Calculate calendar date: start_date + (week_number * 7 days)
-                    milestone_dt = start_dt + timedelta(days=week_num * 7)
-                    # Format nicely like "Aug 30"
-                    pt["formatted_date"] = milestone_dt.strftime('%b %d')
-                except (ValueError, TypeError):
-                    pt["formatted_date"] = None
-        # --------------------------------------------------------------------
+            predictions = user_data["weight_predictions"]
+            try:
+                selected_dt = datetime.strptime(date, '%Y-%m-%d')
+                sorted_preds = sorted(predictions, key=lambda x: int(x.get("week", 0)))
+                for i, pt in enumerate(sorted_preds):
+                    pt_date_str = pt.get("date")
+                    if not pt_date_str:
+                        continue
+                    
+                    pt_dt = datetime.strptime(pt_date_str, '%Y-%m-%d')
+                    
+                    # Determine active week
+                    next_pt_dt = None
+                    if i + 1 < len(sorted_preds):
+                        next_date_str = sorted_preds[i+1].get("date")
+                        if next_date_str:
+                            next_pt_dt = datetime.strptime(next_date_str, '%Y-%m-%d')
+                    
+                    if next_pt_dt:
+                        if pt_dt <= selected_dt < next_pt_dt:
+                            active_week_num = int(pt.get("week", 0))
+                    else:
+                        if pt_dt <= selected_dt:
+                            active_week_num = int(pt.get("week", 0))
+                
+                if active_week_num is None and sorted_preds:
+                    first_date_str = sorted_preds[0].get("date")
+                    if first_date_str:
+                        first_dt = datetime.strptime(first_date_str, '%Y-%m-%d')
+                        if selected_dt < first_dt:
+                            active_week_num = int(sorted_preds[0].get("week", 0))
+            except Exception as e:
+                print(f"Error determining active week: {e}")
+        
+        journey_status["active_week_num"] = active_week_num
 
         log_data = get_daily_log(uid, date)
         if log_data:
@@ -73,7 +114,7 @@ async def dashboard_page(request: Request, uid: str, date: str = None):
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
-        context={"user": user_data, "journey_status": journey_status, "selected_date": date, "daily_log": daily_log}
+        context={"user": user_data, "journey_status": journey_status, "selected_date": date, "daily_log": daily_log, "weight_stats": weight_stats}
     )
 @router.post("/update-target-calories")
 async def update_target_calories(uid: str = Form(...), target_calories: int = Form(...), date: str = Form(None)):
@@ -85,17 +126,33 @@ async def update_target_calories(uid: str = Form(...), target_calories: int = Fo
     return RedirectResponse(url=url, status_code=303)
 
 @router.get("/trends", response_class=HTMLResponse)
-async def trends_page(request: Request, uid: str, days: int = 14):
+async def trends_page(request: Request, uid: str, days: int = 14, start_date: str = None, end_date: str = None):
     user_data = get_user(uid)
     if not user_data:
         return RedirectResponse(url="/")
 
-    end_date = datetime.today()
-    start_date = end_date - timedelta(days=days - 1)
+    if start_date and end_date:
+        try:
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+            if end_dt < start_dt:
+                start_dt, end_dt = end_dt, start_dt
+                start_date, end_date = end_date, start_date
+            days = (end_dt - start_dt).days + 1
+        except ValueError:
+            end_dt = datetime.today()
+            start_dt = end_dt - timedelta(days=days - 1)
+            start_date = start_dt.strftime('%Y-%m-%d')
+            end_date = end_dt.strftime('%Y-%m-%d')
+    else:
+        end_dt = datetime.today()
+        start_dt = end_dt - timedelta(days=days - 1)
+        start_date = start_dt.strftime('%Y-%m-%d')
+        end_date = end_dt.strftime('%Y-%m-%d')
 
-    logs = get_logs_in_range(uid, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+    logs = get_logs_in_range(uid, start_date, end_date)
 
-    dates = [(start_date + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(days)]
+    dates = [(start_dt + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(days)]
     weight_values = []
     calorie_values = []
     activity_values = []
@@ -115,11 +172,21 @@ async def trends_page(request: Request, uid: str, days: int = 14):
         calorie_values.append(day["calories"])
         activity_values.append(day["steps"])
 
-    # Fetch all logs for the current month for the gym calendar
-    now = datetime.today()
-    start_of_month = now.replace(day=1).strftime('%Y-%m-%d')
-    month_logs = get_logs_in_range(uid, start_of_month, now.strftime('%Y-%m-%d'))
-    gym_dates = [log["date"] for log in month_logs if log.get("went_to_gym")]
+    # Fetch all logs in the selected date range months for the gym calendar
+    try:
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+        gym_start = start_dt.replace(day=1).strftime('%Y-%m-%d')
+        # last day of end_dt's month
+        next_month = end_dt.replace(day=28) + timedelta(days=4)
+        gym_end = (next_month - timedelta(days=next_month.day)).strftime('%Y-%m-%d')
+    except Exception:
+        now = datetime.today()
+        gym_start = now.replace(day=1).strftime('%Y-%m-%d')
+        gym_end = now.strftime('%Y-%m-%d')
+
+    gym_logs = get_logs_in_range(uid, gym_start, gym_end)
+    gym_dates = [log["date"] for log in gym_logs if log.get("went_to_gym")]
 
     return templates.TemplateResponse(
         name="trends.html",
@@ -128,7 +195,9 @@ async def trends_page(request: Request, uid: str, days: int = 14):
             "user": user_data, "dates": dates, "weight_values": weight_values,
             "calorie_values": calorie_values, "activity_values": activity_values,
             "target_calories": user_data.get("target_calories", 0),
-            "gym_dates": gym_dates
+            "gym_dates": gym_dates,
+            "start_date": start_date,
+            "end_date": end_date
         }
     )
 
@@ -150,12 +219,19 @@ async def weekly_report(request: Request, uid: str, start_date: str = None, end_
         start_date, end_date = end_date, start_date
 
     logs = get_logs_in_range(uid, start_date, end_date)
+    weight_stats = get_weight_range_stats(uid)
     
     dates_map = {}
     day_count = (end_dt - start_dt).days + 1
     for i in range(day_count):
         d = (start_dt + timedelta(days=i)).strftime('%Y-%m-%d')
-        dates_map[d] = {"date": d, "total_consumed": 0, "logs_count": 0}
+        dates_map[d] = {
+            "date": d,
+            "total_consumed": 0,
+            "logs_count": 0,
+            "weight": None,
+            "total_protein": 0
+        }
 
     total_consumed = 0
     for data in logs:
@@ -163,6 +239,12 @@ async def weekly_report(request: Request, uid: str, start_date: str = None, end_
         if d in dates_map:
             dates_map[d]["total_consumed"] = data.get("total_consumed", 0)
             dates_map[d]["logs_count"] = len(data.get("logs", []))
+            dates_map[d]["weight"] = data.get("weight")
+            
+            # Sum protein from itemized food logs for that day
+            day_logs = data.get("logs", [])
+            dates_map[d]["total_protein"] = sum(item.get("protein", 0) for item in day_logs)
+            
             total_consumed += data.get("total_consumed", 0)
 
     daily_summaries = sorted(dates_map.values(), key=lambda x: x["date"])
@@ -174,7 +256,8 @@ async def weekly_report(request: Request, uid: str, start_date: str = None, end_
     try:
         ai_analysis = analyze_weekly_report(
             daily_summaries=daily_summaries, target_daily=target_daily,
-            total_consumed=total_consumed, estimated_weight_loss=est_loss, user_data=user_data
+            total_consumed=total_consumed, estimated_weight_loss=est_loss, user_data=user_data,
+            weight_stats=weight_stats
         )
         ai_analysis["total_consumed"] = total_consumed
         ai_analysis["total_target"] = total_target
@@ -253,5 +336,6 @@ async def progress_review(uid: str, date: str = None):
     return {
         "status_summary": report.get("status_summary", "Unable to generate progress report."),
         "change_observation": report.get("change_observation", "No observation available."),
-        "coach_recommendation": report.get("coach_recommendation", "Try logging your weight and activity before analyzing.")
+        "coach_recommendation": report.get("coach_recommendation", "Try logging your weight and activity before analyzing."),
+        "diet_analysis": report.get("diet_analysis", "No diet analysis available.")
     }

@@ -50,5 +50,50 @@ def get_logs_in_range(uid: str, start_date: str, end_date: str) -> list:
              .where("date", ">=", start_date).where("date", "<=", end_date).stream()
     return [d.to_dict() for d in docs]
 
+
+def get_weight_range_stats(uid: str) -> dict:
+    docs = db.collection("users").document(uid).collection("daily_tracker").stream()
+    weights = []
+    weight_entries = []
+
+    for doc in docs:
+        data = doc.to_dict() or {}
+        weight = data.get("weight")
+        if weight is None:
+            continue
+        try:
+            numeric_weight = float(weight)
+        except (TypeError, ValueError):
+            continue
+
+        weights.append(numeric_weight)
+        weight_entries.append({
+            "date": data.get("date"),
+            "weight": numeric_weight,
+        })
+
+    if not weights:
+        return {
+            "lowest_weight": None,
+            "highest_weight": None,
+            "difference": None,
+            "weight_entries_count": 0,
+            "lowest_weight_date": None,
+            "highest_weight_date": None,
+        }
+
+    lowest_entry = min(weight_entries, key=lambda item: item["weight"])
+    highest_entry = max(weight_entries, key=lambda item: item["weight"])
+
+    return {
+        "lowest_weight": round(lowest_entry["weight"], 1),
+        "highest_weight": round(highest_entry["weight"], 1),
+        "difference": round(highest_entry["weight"] - lowest_entry["weight"], 1),
+        "weight_entries_count": len(weight_entries),
+        "lowest_weight_date": lowest_entry.get("date"),
+        "highest_weight_date": highest_entry.get("date"),
+    }
+
+
 def update_daily_log_raw(uid: str, date: str, data: dict):
     db.collection("users").document(uid).collection("daily_tracker").document(date).update(data)

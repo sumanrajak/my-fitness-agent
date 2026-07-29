@@ -3,6 +3,7 @@ from typing import List
 
 class WeightPredictionPoint(BaseModel):
     week: int
+    date: str
     weight: float
     milestone_note: str
 
@@ -21,6 +22,7 @@ class ProgressReport(BaseModel):
     status_summary: str
     change_observation: str
     coach_recommendation: str
+    diet_analysis: str
 
 class ConsistencyReview(BaseModel):
     status_evaluation: str

@@ -60,6 +60,8 @@
                         <tr>
                             <th>Date</th>
                             <th>Meals Logged</th>
+                            <th style="text-align: right;">Weight</th>
+                            <th style="text-align: right;">Protein</th>
                             <th style="text-align: right;">Total Calories</th>
                             <th style="text-align: right;">Status</th>
                         </tr>
@@ -69,6 +71,16 @@
                         <tr>
                             <td>{{ day.date }}</td>
                             <td>{{ day.logs_count }}</td>
+                            <td style="text-align: right; font-weight: bold;">
+                                {% if day.weight is not none %}
+                                    {{ day.weight }} kg
+                                {% else %}
+                                    <span style="color: var(--text-muted); font-weight: normal;">-</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right; font-weight: bold; color: #34d399;">
+                                {{ day.total_protein|round(1) }}g
+                            </td>
                             <td style="text-align: right; font-weight: bold;">{{ day.total_consumed }} kcal</td>
                             <td style="text-align: right;">
                                 {% if day.total_consumed == 0 %}

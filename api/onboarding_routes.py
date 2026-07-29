@@ -158,8 +158,23 @@ async def start_journey(uid: str = Form(...), start_date: str = Form(...)):
     update_data = {"journey_start_date": start_date}
 
     existing_user = get_user(uid)
-    if existing_user and not existing_user.get("starting_weight"):
-        update_data["starting_weight"] = existing_user.get("weight")
+    if existing_user:
+        if not existing_user.get("starting_weight"):
+            update_data["starting_weight"] = existing_user.get("weight")
+        
+        # Shift weight prediction dates based on the new journey_start_date
+        predictions = existing_user.get("weight_predictions", [])
+        if predictions:
+            from datetime import timedelta
+            try:
+                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                for pt in predictions:
+                    week_num = int(pt.get("week", 0))
+                    pt_date = start_dt + timedelta(days=week_num * 7)
+                    pt["date"] = pt_date.strftime('%Y-%m-%d')
+                update_data["weight_predictions"] = predictions
+            except Exception as e:
+                print(f"Error shifting predictions dates: {e}")
 
     save_user(uid, update_data)
     return RedirectResponse(url=f"/onboard/dashboard?uid={uid}", status_code=303)

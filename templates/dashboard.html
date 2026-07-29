@@ -172,12 +172,15 @@
             <a href="/onboard/reanalysis-history?uid={{ user.uid }}" class="btn btn-dark">🗂️ Reanalysis History</a>
         </div>
 
-        <div class="filter-bar">
-            <form method="GET" action="/onboard/dashboard" class="filter-flex">
+        <div class="filter-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <form method="GET" action="/onboard/dashboard" class="filter-flex" style="margin: 0;">
                 <input type="hidden" name="uid" value="{{ user.uid }}">
                 <label>Viewing Logs For:</label>
                 <input type="date" name="date" value="{{ selected_date }}" onchange="this.form.submit()">
             </form>
+            <button id="copySummaryBtn" onclick="copyDaySummary()" class="btn btn-dark" style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; padding: 10px 16px; margin: 0; background: rgba(30, 41, 59, 0.6); border: 1px solid var(--border-color); color: var(--text-main); cursor: pointer; border-radius: var(--radius-sm); transition: all 0.2s ease;">
+                📋 Copy Day Summary
+            </button>
         </div>
 
         <div class="action-btn-group" style="margin-bottom: 25px;">
@@ -217,6 +220,19 @@
             <div class="metric-card bg-violet">
                 <h3>Target Weight</h3>
                 <h2>{{ user.target_weight }} kg</h2>
+            </div>
+            <div class="metric-card bg-indigo">
+                <h3>Weight Range</h3>
+                {% if weight_stats.lowest_weight is not none and weight_stats.highest_weight is not none %}
+                <h2>{{ weight_stats.lowest_weight }} – {{ weight_stats.highest_weight }} kg</h2>
+                <div style="font-size: 0.8rem; margin-top: 6px; opacity: 0.85;">Spread: {{ weight_stats.difference }} kg</div>
+                <div style="font-size: 0.75rem; margin-top: 4px; opacity: 0.75;">
+                    Low: {{ weight_stats.lowest_weight_date or '—' }} · High: {{ weight_stats.highest_weight_date or '—' }}
+                </div>
+                {% else %}
+                <h2>—</h2>
+                <div style="font-size: 0.8rem; margin-top: 6px; opacity: 0.85;">No logged weight yet</div>
+                {% endif %}
             </div>
             <div class="metric-card {% if daily_log.balance >= 0 %}bg-green{% else %}bg-red{% endif %}">
                 <h3>Remaining</h3>
@@ -285,10 +301,11 @@
                         style="margin-bottom: 12px; font-size: 0.95rem; color: #c084fc; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
                         Weekly Milestones</h4>
                     <div class="weight-timeline-container">
-                        {% set current_week = journey_status.week_number-1|default(0)|int %}
+                        {% set active_week = journey_status.active_week_num %}
                         {% for pt in user.weight_predictions %}
-                        {% set is_past = pt.week < current_week %} {% set is_current=pt.week==current_week %} {% set
-                            is_future=pt.week> current_week %}
+                        {% set is_past = active_week is not none and pt.week < active_week %}
+                        {% set is_current = active_week is not none and pt.week == active_week %}
+                        {% set is_future = active_week is none or pt.week > active_week %}
                             <div class="weight-timeline-item {% if is_current %}active{% endif %}">
                                 <div class="weight-timeline-dot">
                                     {% if is_past %}
@@ -300,8 +317,7 @@
                                 <div class="weight-timeline-content">
                                     <div class="weight-timeline-header">
                                         <span class="weight-timeline-title">
-                                            Week {{ pt.week }} {% if pt.formatted_date %}({{ pt.formatted_date }}){%
-                                            endif %}
+                                            Week {{ pt.week }} {% if pt.formatted_date %}({{ pt.formatted_date }}){% elif pt.date %}({{ pt.date }}){% endif %}
                                             {% if is_current %}
                                             <span
                                                 style="background: var(--accent-success); color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px; margin-left: 6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);">Current</span>
@@ -475,10 +491,11 @@
                 style="width: 100%; padding: 14px; margin-bottom: 18px;">
                 Generate Progress Summary
             </button>
-            <div id="progress-summary-box" class="progress-summary" style="display: none;">
+             <div id="progress-summary-box" class="progress-summary" style="display: none;">
                 <p><strong>Status:</strong> <span id="progress-status">...</span></p>
                 <p><strong>Observation:</strong> <span id="progress-observation">...</span></p>
                 <p><strong>Coach Recommendation:</strong> <span id="progress-recommendation">...</span></p>
+                <p style="margin-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 12px;"><strong>🥗 Diet Analysis (Good vs Bad Choices):</strong> <span id="progress-diet">...</span></p>
             </div>
         </div>
 
@@ -556,6 +573,7 @@
             const status = document.getElementById('progress-status');
             const observation = document.getElementById('progress-observation');
             const recommendation = document.getElementById('progress-recommendation');
+            const diet = document.getElementById('progress-diet');
 
             btn.innerText = "Generating summary...";
             btn.disabled = true;
@@ -567,6 +585,9 @@
                     status.innerText = data.status_summary;
                     observation.innerText = data.change_observation;
                     recommendation.innerText = data.coach_recommendation;
+                    if (diet) {
+                        diet.innerText = data.diet_analysis;
+                    }
                     box.style.display = 'block';
                     btn.innerText = "Generate Progress Summary";
                     btn.disabled = false;
@@ -586,6 +607,64 @@
             row.style.display = row.style.display === 'table-row' ? 'none' : 'table-row';
         }
 
+        const dailyLogData = {{ daily_log | tojson | safe }};
+        const selectedDate = "{{ selected_date }}";
+
+        function copyDaySummary() {
+            let summary = `📋 Fitness Summary for ${selectedDate}\n\n`;
+            
+            // Weight
+            if (dailyLogData.weight) {
+                summary += `⚖️ Weight: ${dailyLogData.weight} kg\n`;
+            } else {
+                summary += `⚖️ Weight: Not Logged\n`;
+            }
+            
+            // Activity
+            summary += `🏃 Steps: ${dailyLogData.steps || 0}\n`;
+            summary += `⏱️ Exercise: ${dailyLogData.exercise_minutes || 0} mins\n`;
+            if (dailyLogData.activity_description) {
+                summary += `📝 Activity Notes: ${dailyLogData.activity_description}\n`;
+            }
+            summary += `\n`;
+            
+            // Nutrition
+            summary += `🍽️ Nutrition Summary:\n`;
+            summary += `- Calories Consumed: ${dailyLogData.total_consumed || 0} kcal\n`;
+            summary += `- Protein: ${(dailyLogData.total_protein || 0).toFixed(1)}g\n`;
+            summary += `- Fiber: ${(dailyLogData.total_fiber || 0).toFixed(1)}g\n`;
+            summary += `- Carbs: ${(dailyLogData.total_carbs || 0).toFixed(1)}g\n\n`;
+            
+            // Logged Foods
+            summary += `🥗 Food Logs:\n`;
+            if (dailyLogData.logs && dailyLogData.logs.length > 0) {
+                dailyLogData.logs.forEach(item => {
+                    summary += `- [${item.meal_type}] ${item.input_text || 'Logged Meal'} (${item.calories} kcal, P: ${item.protein}g, F: ${item.fiber}g, C: ${item.carbs}g)\n`;
+                });
+            } else {
+                summary += `No food logged for this day.\n`;
+            }
+            
+            navigator.clipboard.writeText(summary).then(() => {
+                const btn = document.getElementById('copySummaryBtn');
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '✅ Copied!';
+                    btn.style.background = 'var(--accent-success)';
+                    btn.style.borderColor = 'var(--accent-success)';
+                    btn.style.color = '#fff';
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.style.background = '';
+                        btn.style.borderColor = '';
+                        btn.style.color = '';
+                    }, 2000);
+                }
+            }).catch(err => {
+                alert('Failed to copy: ' + err);
+            });
+        }
+
         document.querySelectorAll('form').forEach(form => {
             form.addEventListener('submit', showLoadingOverlay);
         });
@@ -597,7 +676,7 @@
             const predWeightData = [];
 
             {% for pt in user.weight_predictions %}
-            predLabels.push("Week {{ pt.week }}");
+            predLabels.push("Week {{ pt.week }}{% if pt.formatted_date %} ({{ pt.formatted_date }}){% elif pt.date %} ({{ pt.date }}){% endif %}");
             predWeightData.push({{ pt.weight }});
         {% endfor %}
 

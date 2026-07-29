@@ -183,7 +183,7 @@
                                 </div>
                                 <div class="weight-timeline-content">
                                     <div class="weight-timeline-header">
-                                        <span class="weight-timeline-title">Week {{ pt.week }}</span>
+                                        <span class="weight-timeline-title">Week {{ pt.week }} {% if pt.date %}({{ pt.date }}){% endif %}</span>
                                         <span class="weight-timeline-value">{{ pt.weight }} kg</span>
                                     </div>
                                     <p class="weight-timeline-note">{{ pt.milestone_note }}</p>
@@ -243,7 +243,7 @@
             const predWeightData = [];
             
             {% for pt in ai_analysis.weight_predictions %}
-                predLabels.push("Week {{ pt.week }}");
+                predLabels.push("Week {{ pt.week }}{% if pt.date %} ({{ pt.date }}){% endif %}");
                 predWeightData.push({{ pt.weight }});
             {% endfor %}
 
