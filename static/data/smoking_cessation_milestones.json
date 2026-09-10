@@ -1,0 +1,63 @@
+{
+  "milestones": [
+    {"days": 0, "title": "Day 0: Begin", "message": "This is the first brave decision. You do not need to win forever today; you only need to protect this moment.", "effects": ["You have interrupted the smoking routine.", "Cravings rise and fall like waves."]},
+    {"days": 1, "title": "Day 1: You started", "message": "One day smoke-free. You have already shown that a craving does not control your decision.", "effects": ["Carbon monoxide levels begin moving toward normal.", "Your heart and lungs are starting to recover."]},
+    {"days": 2, "title": "Day 2: Keep choosing yourself", "message": "Two days complete. Your future gym sessions are being built by choices like this one.", "effects": ["Nicotine is largely out of your body.", "Taste and smell may begin to improve."]},
+    {"days": 3, "title": "Day 3: The first big test", "message": "Three days is a powerful proof point. When a craving arrives, remember that you have already outlasted it before.", "effects": ["Breathing may begin to feel easier.", "Energy may start to improve."]},
+    {"days": 4, "title": "Day 4: Build the new routine", "message": "Day four is about repetition. Replace the old smoke break with water, walking, or a few slow breaths.", "effects": ["Your body is adapting to life without new smoke exposure.", "Triggers can become easier to recognize and plan for."]},
+    {"days": 5, "title": "Day 5: Craving is not a command", "message": "Five days strong. A craving can be uncomfortable without being something you must obey.", "effects": ["Your smoke-free coping skills are getting practice.", "Your exercise recovery can benefit from avoiding smoke."]},
+    {"days": 6, "title": "Day 6: Protect tomorrow", "message": "You are one day away from a full week. Make the next healthy choice small and immediate.", "effects": ["Your lungs continue their recovery.", "Your daily routine is beginning to separate from smoking."]},
+    {"days": 7, "title": "Day 7: One week complete", "message": "A full week smoke-free. You have created evidence that you can change a difficult habit.", "effects": ["Many people begin noticing fewer smoking triggers.", "Walking and training may start to feel more comfortable."]},
+    {"days": 8, "title": "Day 8: Momentum", "message": "The first week is behind you. Today is not starting over; it is continuing your progress.", "effects": ["Your body keeps repairing itself without new smoke.", "Your confidence grows each time you handle a trigger smoke-free."]},
+    {"days": 9, "title": "Day 9: Choose your lungs", "message": "Nine days complete. Your next workout deserves the cleanest breathing you can give it.", "effects": ["Circulation continues to improve over time.", "Physical activity may feel more manageable."]},
+    {"days": 10, "title": "Day 10: Ten decisions", "message": "Ten days means ten days of choosing your health. Keep the streak stronger than the momentary urge.", "effects": ["Your airways are getting a break from irritants.", "Your smoke-free identity is becoming more familiar."]},
+    {"days": 11, "title": "Day 11: Notice the wins", "message": "Notice what you gain: time, breath, money, and control. These are real results even when a craving is loud.", "effects": ["Your body continues adjusting to no nicotine.", "Cravings often become shorter and more predictable with practice."]},
+    {"days": 12, "title": "Day 12: Train the pause", "message": "Pause before reacting today. Ten slow breaths can create enough space for the healthier choice.", "effects": ["Avoiding smoke supports circulation and breathing.", "Your recovery habits are becoming stronger."]},
+    {"days": 13, "title": "Day 13: Nearly two weeks", "message": "You are one day from two weeks. The goal is simple: do not trade lasting progress for a passing craving.", "effects": ["Your lungs continue clearing and recovering.", "Your body is benefiting from every smoke-free day."]},
+    {"days": 14, "title": "Day 14: Two weeks complete", "message": "Two weeks smoke-free. This is a pattern now, and your fitness goal has a stronger foundation.", "effects": ["Circulation and lung function can begin to improve.", "Exercise may feel easier than when you smoked."]},
+    {"days": 15, "title": "Day 15: Halfway to three weeks", "message": "You have crossed two weeks. Keep showing up for the person who wants better health and stronger gym performance.", "effects": ["Your heart and lungs continue recovering.", "Your stamina can improve as smoke exposure stays away."]},
+    {"days": 16, "title": "Day 16: Make it automatic", "message": "Every time you refuse a trigger, the smoke-free response becomes easier to reach next time.", "effects": ["Your brain is learning new responses to old cues.", "Your breathing gets more protection during activity."]},
+    {"days": 17, "title": "Day 17: Stronger than the urge", "message": "An urge is a signal, not an instruction. You are allowed to let it pass while keeping your goal.", "effects": ["Smoke-free time continues supporting your recovery.", "Your daily energy can be used for movement instead of recovery from smoke."]},
+    {"days": 18, "title": "Day 18: Keep your reason close", "message": "Remember why you started: a healthier life, better training, and control over your choices.", "effects": ["Your circulation continues benefiting from not smoking.", "Your body is building more smoke-free recovery time."]},
+    {"days": 19, "title": "Day 19: One more clean day", "message": "You do not need perfect motivation. You need one more smoke-free decision, then another.", "effects": ["Your lungs continue avoiding new irritation.", "Handling cravings is becoming a practiced skill."]},
+    {"days": 20, "title": "Day 20: Twenty days strong", "message": "Twenty days is meaningful progress. Protect it with the same patience you use for your fitness goals.", "effects": ["Your body continues repairing itself.", "Staying smoke-free supports stamina and recovery over time."]},
+    {"days": 21, "title": "Day 21: Three weeks complete", "message": "Three weeks complete. You are proving that your routine can be designed around health instead of smoking.", "effects": ["New habits become easier to repeat with consistency.", "Your lungs and circulation continue to benefit."]},
+    {"days": 22, "title": "Day 22: Keep the streak alive", "message": "The next craving is only a moment. Your progress is much bigger than that moment.", "effects": ["Your smoke-free coping plan gets stronger with every use.", "Your workouts benefit from avoiding smoke exposure."]},
+    {"days": 23, "title": "Day 23: Your body is working with you", "message": "You are giving your body the conditions it needs to recover. Keep choosing the version of you who trains and lives freely.", "effects": ["Breathing and circulation can continue improving.", "Your body is no longer receiving new smoke toxins."]},
+    {"days": 24, "title": "Day 24: Almost one month", "message": "You are approaching one month. A craving cannot erase twenty-four days of courage.", "effects": ["Your smoke-free routine is becoming established.", "Coughing or breathlessness may decrease for some people."]},
+    {"days": 25, "title": "Day 25: Keep your promise", "message": "Twenty-five days complete. Keep the promise you made to your health one hour at a time.", "effects": ["Your lungs continue clearing mucus and recovering defenses.", "Physical activity can feel more comfortable over time."]},
+    {"days": 26, "title": "Day 26: One choice at a time", "message": "You are close to a month. If today feels hard, shrink the task: delay, breathe, move, repeat.", "effects": ["Cravings can become less frequent with continued abstinence.", "Your heart and lungs continue getting smoke-free time."]},
+    {"days": 27, "title": "Day 27: Your progress is visible", "message": "Twenty-seven days of evidence is stronger than one difficult moment. Stay with the evidence.", "effects": ["Your exercise capacity may gradually improve.", "Avoiding smoke protects your recovery between workouts."]},
+    {"days": 28, "title": "Day 28: Four weeks complete", "message": "Four weeks smoke-free. You have built a month of healthier decisions and a stronger platform for your goals.", "effects": ["Coughing and shortness of breath may decrease.", "Your lungs continue recovering from smoke exposure."]},
+    {"days": 29, "title": "Day 29: Tomorrow is a milestone", "message": "One day before a full month. Finish this stretch by choosing the next healthy action, not the old habit.", "effects": ["Your body continues benefiting from no new smoke.", "Your smoke-free routine is becoming normal."]},
+    {"days": 30, "title": "Day 30: One month complete", "message": "One month smoke-free. This is no longer only an intention; it is a pattern you have practiced.", "effects": ["Coughing and shortness of breath may decrease.", "Your lungs continue clearing mucus and recovering defenses."]},
+    {"days": 31, "title": "Day 31: Beyond the first month", "message": "You made it past one month. Keep building a life where gym progress and clean breathing come first.", "effects": ["Your circulation and lung function can continue improving.", "Your body keeps gaining recovery time."]},
+    {"days": 32, "title": "Day 32: Keep moving forward", "message": "A strong future is built from ordinary days like today. Keep your next decision smoke-free.", "effects": ["Your lungs continue healing without new exposure.", "Your stamina may benefit from staying smoke-free."]},
+    {"days": 33, "title": "Day 33: Cravings do not define you", "message": "You can feel a craving and still be someone who does not smoke. Both things can be true for a moment.", "effects": ["Your brain continues learning new responses to triggers.", "Your heart and lungs continue benefiting."]},
+    {"days": 34, "title": "Day 34: Protect your training", "message": "Your fitness progress deserves protection. Every smoke-free day supports the energy you bring to the gym.", "effects": ["Avoiding smoke supports breathing during exercise.", "Recovery continues with no new smoke exposure."]},
+    {"days": 35, "title": "Day 35: Five weeks strong", "message": "Five weeks complete. You have already handled dozens of moments that could have pulled you back.", "effects": ["Your smoke-free coping skills are well practiced.", "Circulation and lung recovery can continue over time."]},
+    {"days": 36, "title": "Day 36: Keep your identity", "message": "You are building a clear identity: someone who protects their health even when the easy choice is familiar.", "effects": ["Your body continues adapting to life without nicotine.", "Your activity can benefit from improved breathing over time."]},
+    {"days": 37, "title": "Day 37: Almost six weeks", "message": "You are close to six weeks. Stay focused on what you gain every day you do not smoke.", "effects": ["Your lungs continue their repair process.", "Your triggers can lose power as you meet them smoke-free."]},
+    {"days": 38, "title": "Day 38: Keep your future strong", "message": "The future version of you is being built right now. Give that person one more smoke-free day.", "effects": ["Your heart and lungs continue benefiting from abstinence.", "Your endurance goals have more room to grow."]},
+    {"days": 39, "title": "Day 39: One day from forty", "message": "You are one day away from forty days. Do not negotiate with the old habit tonight; protect the milestone you earned.", "effects": ["Your smoke-free routine is deeply established.", "Your body continues recovering without new smoke exposure."]},
+    {"days": 40, "title": "Day 40: A crucial victory", "message": "Forty days smoke-free. You have crossed the crucial first stretch and built real proof that you can live, train, and recover without smoking.", "effects": ["Your circulation and lung function can continue improving.", "Your confidence and fitness routine now have forty days of momentum."]},
+    {
+      "days": 90,
+      "title": "90 days complete",
+      "message": "Three months smoke-free. That is a powerful investment in your future health.",
+      "effects": [
+        "Circulation and lung function can show meaningful improvement.",
+        "Physical activity may feel easier than when you smoked."
+      ]
+    },
+    {
+      "days": 365,
+      "title": "One year complete",
+      "message": "One year smoke-free. You changed your life one decision at a time.",
+      "effects": [
+        "Your risk of coronary heart disease is about half that of someone who continues to smoke.",
+        "You have created a full year of evidence that you can keep going."
+      ]
+    }
+  ]
+}

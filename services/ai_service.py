@@ -5,7 +5,7 @@ from google import genai
 from google.genai import types
 from core.config import settings
 from utils.fitness_math import compute_calorie_plan
-from schemas.ai import CoachInsight, FoodEstimation, ProgressReport, ConsistencyReview, WeeklyAnalysis
+from schemas.ai import CoachInsight, FoodEstimation, ProgressReport, ConsistencyReview, CravingSupport, MealRecommendation, WeeklyAnalysis
 
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
@@ -248,6 +248,181 @@ def analyze_consistency_review(user_data: dict, recent_summaries: list = None) -
     2. "actionable_tip"
     """
     return _generate_with_model_fallback(prompt, ConsistencyReview, temperature=0.25)
+
+def generate_craving_support(
+    user_data: dict,
+    weekly_progress: list,
+    smoke_free_days: int,
+    smoke_free_hours: int,
+    money_saved: int,
+    next_10_days_savings: int,
+    craving_note: str = ""
+) -> dict:
+    starting_weight = user_data.get("starting_weight") or user_data.get("weight", "unknown")
+    current_weight = user_data.get("current_weight") or user_data.get("weight", "unknown")
+    target_weight = user_data.get("target_weight", "unknown")
+    weight_change = "not enough logged weights"
+
+    logged_weights = [entry.get("weight") for entry in weekly_progress if entry.get("weight") is not None]
+    if len(logged_weights) >= 2:
+        weight_change = f"{round(logged_weights[0] - logged_weights[-1], 1)} kg change across the logged week"
+
+    weekly_context = "\n".join([
+        f"- {entry.get('date')}: weight {entry.get('weight', 'not logged')} kg, "
+        f"calories {entry.get('total_consumed', 0)}, steps {entry.get('steps', 0)}, "
+        f"exercise {entry.get('exercise_minutes', 0)} minutes, "
+        f"activity: {entry.get('activity_description', 'not logged')}, "
+        f"food choices: {', '.join(item.get('input_text', 'logged meal') for item in entry.get('logs', [])) or 'none logged'}"
+        for entry in weekly_progress
+    ]) or "- No daily logs were recorded this week."
+
+    logged_steps = sum(entry.get("steps", 0) or 0 for entry in weekly_progress)
+    logged_exercise = sum(entry.get("exercise_minutes", 0) or 0 for entry in weekly_progress)
+    elapsed_label = f"{smoke_free_days} days and {smoke_free_hours % 24} hours"
+
+    prompt = f"""
+    You are Suman's personal smoking-cessation friend and dramatic fitness coach. Suman has a craving
+    right now, and your response should feel like a trusted friend grabbed his attention at exactly the
+    right moment. Be creative, vivid, warm, bold, and specific. Do not sound like a generic health article.
+    Vary your opening and imagery every time. Respond with warmth, confidence, and practical help for
+    the next 10 minutes. Never shame the user,
+    exaggerate medical benefits, or tell them to ignore serious symptoms. Encourage professional help
+    or a local quitline if cravings feel unmanageable or withdrawal feels unsafe.
+
+    User context:
+    - Smoke-free days: {smoke_free_days}
+    - Total smoke-free hours: {smoke_free_hours}
+    - Human-readable time already protected: {elapsed_label}
+    - Money saved so far by not buying cigarettes: Rs {money_saved}
+    - Additional money that can be saved over the next 10 smoke-free days: Rs {next_10_days_savings}
+    - First 40 smoke-free days are especially important to this user
+    - Smoking habit before quitting: 10 cigarettes per day at Rs 20 each (Rs 200 per day)
+    - Starting weight: {starting_weight} kg
+    - Current weight: {current_weight} kg
+    - Target weight: {target_weight} kg
+    - Personal context and goals: {user_data.get('context', 'not provided')}
+    - Activity level: {user_data.get('activity_level', 'not provided')}
+    - Weight change represented by the last week's logged weights: {weight_change}
+    - User's craving note: {craving_note or 'No note provided'}
+    - Last 7 days total steps: {logged_steps}
+    - Last 7 days total exercise: {logged_exercise} minutes
+
+    Last seven days of tracking:
+    {weekly_context}
+
+    Make the response personal by referring to actual steps, workouts, food choices, weight change,
+    smoke-free time, and savings when the data supports it. Remind him that not smoking can support
+    breathing, circulation, exercise, and recovery over time, using cautious language such as "can" or
+    "may". Connect the money saved to realistic Bangalore, India choices, clearly labeling prices as
+    rough examples that vary: fruit or curd for recovery, a serving of eggs or paneer, a gym accessory,
+    a coffee or juice, or saving toward a better meal. Do not encourage replacing cigarettes with junk food.
+    Give three concrete actions for now, such as delaying the decision, drinking water, walking, breathing
+    slowly, or contacting someone. Include a dramatic but kind 10-minute challenge.
+    Return valid JSON with exactly these keys:
+    - headline: a short encouraging title
+    - message: 2-3 sentences directly addressing the craving
+    - immediate_actions: exactly 3 short actions
+    - motivation: 1-2 sentences connecting the streak to their fitness goal
+    - safety_note: one concise sentence about getting professional support if needed
+    - friend_note: 1-2 vivid sentences that sound like a close friend speaking directly to Suman
+    - challenge: one creative 10-minute challenge with a clear finish line
+    - money_ideas: exactly 3 realistic Bangalore-focused ways to use or save the money, with approximate prices only
+    """
+
+    try:
+        return _generate_with_model_fallback(prompt, CravingSupport, temperature=0.7)
+    except Exception as exc:
+        print(f"Craving support AI failed, using fallback: {exc}")
+        return {
+            "headline": "This craving will pass. Protect your progress.",
+            "message": f"You have already built {smoke_free_days} smoke-free day(s) and {smoke_free_hours} smoke-free hours. You have protected Rs {money_saved}; delay the decision for 10 minutes and let this wave pass without smoking.",
+            "immediate_actions": [
+                "Drink a glass of water slowly.",
+                "Take a 10-minute walk or do gentle movement.",
+                "Text or call someone and say: I am having a craving; please stay with me for 10 minutes."
+            ],
+            "motivation": f"Your goal is {target_weight} kg, and your current weight is {current_weight} kg. Staying smoke-free protects the energy and breathing you need for your gym progress, and the next 10 days can save another Rs {next_10_days_savings}.",
+            "safety_note": "If withdrawal feels unsafe or unmanageable, contact a healthcare professional or a local quitline."
+            ,"friend_note": f"Suman, look at you: {elapsed_label} smoke-free and still standing. This craving is loud, but your progress is louder.",
+            "challenge": "Start a 10-minute victory lap: drink water, walk until the timer ends, then take one proud breath and say, 'I did not smoke.'",
+            "money_ideas": [
+                "Save today's Rs 200 toward a healthier meal or fruit and curd; Bangalore prices vary.",
+                "Put the Rs 200 into a gym or recovery fund for a small accessory; prices vary by shop.",
+                "Keep it in a separate savings pocket and watch the next 10 days become Rs 2,000; prices and savings goals vary."
+            ]
+        }
+
+def recommend_next_meal(
+    user_data: dict,
+    daily_log: dict,
+    remaining_calories: int,
+    fridge_items: str,
+    equipment: str
+) -> dict:
+    prompt = f"""
+    You are Suman's practical nutrition and meal-prep coach. Recommend ONE meal he can cook now.
+    Use actual raw ingredient weights in grams, simple household cooking, and only the ingredients
+    available in his fridge/pantry when possible. Do not invent that an ingredient is available.
+    If the available ingredients are insufficient, clearly name the minimum missing ingredient.
+
+    User goals and profile:
+    - Personal context: {user_data.get('context', 'not provided')}
+    - Activity level: {user_data.get('activity_level', 'not provided')}
+    - Starting weight: {user_data.get('starting_weight', user_data.get('weight', 'unknown'))} kg
+    - Current weight: {user_data.get('current_weight', user_data.get('weight', 'unknown'))} kg
+    - Target weight: {user_data.get('target_weight', 'unknown')} kg
+    - Daily calorie target: {user_data.get('target_calories', 'unknown')} kcal
+
+    Today's intake so far:
+    - Calories: {daily_log.get('total_consumed', 0)} kcal
+    - Remaining calorie budget: {remaining_calories} kcal
+    - Protein: {daily_log.get('total_protein', 0)} g
+    - Fiber: {daily_log.get('total_fiber', 0)} g
+    - Carbs: {daily_log.get('total_carbs', 0)} g
+    - Meals already logged: {len(daily_log.get('logs', []))}
+
+    Ingredients Suman says are available:
+    {fridge_items or 'No fridge items provided. Ask him to add what is available.'}
+
+    Available equipment (pre-filled for this user):
+    {equipment}
+
+    Design a balanced meal that stays at or below the remaining calorie budget when possible,
+    prioritizes protein and fiber, and explains any tradeoff. Use cautious estimated nutrition values;
+    raw weights must be explicit and distinguish dry/raw from cooked ingredients. Give numbered,
+    detailed preparation steps using the available equipment. Do not prescribe extreme restriction.
+    Return valid JSON with exactly these keys:
+    - recipe_name
+    - why_this_meal
+    - ingredients: list of objects with name, raw_weight_g, preparation
+    - steps: list of detailed numbered cooking steps
+    - macros: object with calories, protein_g, fiber_g, carbs_g, fat_g
+    - fit_summary: explain how it fits remaining calories and today's macro intake
+    - safety_note: concise note about allergies, food safety, or checking labels
+    """
+
+    try:
+        return _generate_with_model_fallback(prompt, MealRecommendation, temperature=0.25)
+    except Exception as exc:
+        print(f"Meal recommendation AI failed, using fallback: {exc}")
+        return {
+            "recipe_name": "High-protein pantry bowl",
+            "why_this_meal": "A simple protein-and-fiber option while the available ingredients are being confirmed.",
+            "ingredients": [
+                {"name": "Choose one available lean protein", "raw_weight_g": 150, "preparation": "Use the raw weight; trim and wash as appropriate."},
+                {"name": "Choose available vegetables", "raw_weight_g": 250, "preparation": "Wash and chop into bite-size pieces."},
+                {"name": "Choose one available whole-grain or legume", "raw_weight_g": 50, "preparation": "Use dry weight for grains or legumes and cook fully."}
+            ],
+            "steps": [
+                "Confirm the ingredients and check for allergies before cooking.",
+                "Cook the protein thoroughly in the pan or air fryer.",
+                "Cook the vegetables until tender and combine with the protein and grain or legume.",
+                "Serve and verify the portion against the remaining calorie budget."
+            ],
+            "macros": {"calories": min(remaining_calories, 500), "protein_g": 35, "fiber_g": 10, "carbs_g": 40, "fat_g": 12},
+            "fit_summary": f"This is a placeholder until the fridge list is available. Keep the portion at or below {remaining_calories} kcal.",
+            "safety_note": "Check allergies, wash produce, and cook meat, eggs, and legumes thoroughly."
+        }
 
 def analyze_weekly_report(daily_summaries: list, target_daily: int, total_consumed: int, estimated_weight_loss: float, user_data: dict = None, weight_stats: dict = None) -> dict:
     maintenance_daily = user_data.get("maintenance_calories", 0) if user_data else 0

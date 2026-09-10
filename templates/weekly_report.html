@@ -53,24 +53,25 @@
         </div>
 
         <div class="card-section">
-            <h3 style="margin-bottom: 10px;">Daily Breakdown</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px;">
+                <h3>Daily Breakdown</h3>
+                <button id="copyWeeklyTableBtn" type="button" class="btn btn-dark" onclick="copyWeeklyTable()">📋 Copy JSON</button>
+            </div>
             <div class="table-responsive">
-                <table>
+                <table id="weeklyBreakdownTable">
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Meals Logged</th>
                             <th style="text-align: right;">Weight</th>
                             <th style="text-align: right;">Protein</th>
+                            <th style="text-align: right;">Steps</th>
                             <th style="text-align: right;">Total Calories</th>
-                            <th style="text-align: right;">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for day in daily_summaries %}
-                        <tr>
+                        <tr style="{% if day.total_consumed == 0 %}background: rgba(148, 163, 184, 0.08);{% elif day.total_consumed <= user.target_calories %}background: rgba(16, 185, 129, 0.10);{% else %}background: rgba(239, 68, 68, 0.10);{% endif %}">
                             <td>{{ day.date }}</td>
-                            <td>{{ day.logs_count }}</td>
                             <td style="text-align: right; font-weight: bold;">
                                 {% if day.weight is not none %}
                                     {{ day.weight }} kg
@@ -81,16 +82,8 @@
                             <td style="text-align: right; font-weight: bold; color: #34d399;">
                                 {{ day.total_protein|round(1) }}g
                             </td>
+                            <td style="text-align: right; font-weight: bold;">{{ day.steps }}</td>
                             <td style="text-align: right; font-weight: bold;">{{ day.total_consumed }} kcal</td>
-                            <td style="text-align: right;">
-                                {% if day.total_consumed == 0 %}
-                                    <span style="color: var(--text-muted);">No Data</span>
-                                {% elif day.total_consumed <= user.target_calories %}
-                                    <span style="color: var(--accent-success);">● On Track</span>
-                                {% else %}
-                                    <span style="color: var(--accent-danger);">● Over Target</span>
-                                {% endif %}
-                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -102,5 +95,35 @@
             <p style="font-size: 11px; color: var(--text-muted);">Weight estimation is calculated based on calorie deficit (approx. 7700 kcal per kg).</p>
         </div>
     </div>
+    <script>
+        function copyWeeklyTable() {
+            const table = document.getElementById('weeklyBreakdownTable');
+            const button = document.getElementById('copyWeeklyTableBtn');
+            if (!table || !button) return;
+
+            const headers = Array.from(table.querySelectorAll('thead th')).map(cell =>
+                cell.innerText.trim().toLowerCase().replace(/\s+/g, '_')
+            );
+            const rows = Array.from(table.querySelectorAll('tbody tr')).map(row => {
+                const values = Array.from(row.querySelectorAll('td')).map(cell =>
+                    cell.innerText.trim().replace(/\s+/g, ' ')
+                );
+                return Object.fromEntries(headers.map((header, index) => [header, values[index] || '']));
+            });
+
+            navigator.clipboard.writeText(JSON.stringify(rows, null, 2)).then(() => {
+                const originalText = button.innerHTML;
+                button.innerHTML = '✅ Copied!';
+                button.classList.add('btn-success');
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('btn-success');
+                }, 2000);
+            }).catch(() => {
+                button.innerHTML = 'Copy failed';
+                setTimeout(() => { button.innerHTML = '📋 Copy JSON'; }, 2000);
+            });
+        }
+    </script>
 </body>
 </html>

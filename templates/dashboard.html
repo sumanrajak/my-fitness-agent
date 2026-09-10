@@ -130,6 +130,132 @@
             font-style: italic;
             line-height: 1.4;
         }
+
+        .smoke-free-hero {
+            position: relative;
+            overflow: hidden;
+            padding: 24px;
+            border: 1px solid rgba(110, 231, 183, 0.45);
+            border-radius: var(--radius-md);
+            background: radial-gradient(circle at 82% 18%, rgba(16, 185, 129, 0.22), transparent 34%), linear-gradient(135deg, rgba(6, 78, 59, 0.5), rgba(15, 23, 42, 0.55));
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.12), inset 0 1px rgba(255, 255, 255, 0.08);
+        }
+
+        .smoke-free-hero::after {
+            content: "";
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            right: -70px;
+            top: -78px;
+            border: 1px solid rgba(167, 243, 208, 0.18);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .smoke-free-kicker {
+            color: #a7f3d0;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        .smoke-free-counter-wrap {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+            margin-top: 14px;
+        }
+
+        .smoke-free-ring {
+            display: grid;
+            place-items: center;
+            width: 116px;
+            height: 116px;
+            flex: 0 0 116px;
+            border-radius: 50%;
+            background: conic-gradient(#34d399 var(--smoke-progress, 0%), rgba(167, 243, 208, 0.12) 0);
+            box-shadow: 0 0 24px rgba(52, 211, 153, 0.28);
+            animation: smokeRingGlow 3s ease-in-out infinite;
+        }
+
+        .smoke-free-ring::before {
+            content: "";
+            width: 92px;
+            height: 92px;
+            border-radius: 50%;
+            background: #09251f;
+            position: absolute;
+        }
+
+        .smoke-free-ring-label {
+            position: relative;
+            color: #d1fae5;
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .smoke-free-counter-large {
+            color: #ecfdf5;
+            font-size: clamp(1.45rem, 4vw, 2.35rem);
+            font-weight: 900;
+            line-height: 1.1;
+            text-shadow: 0 0 18px rgba(110, 231, 183, 0.35);
+        }
+
+        .smoke-free-pride {
+            margin-top: 8px;
+            color: #bbf7d0;
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        @keyframes smokeRingGlow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.18); }
+        }
+
+        @media (max-width: 520px) {
+            .smoke-free-hero {
+                padding: 18px;
+            }
+
+            .smoke-free-kicker {
+                font-size: 0.68rem;
+                letter-spacing: 0.11em;
+            }
+
+            .smoke-free-counter-wrap {
+                align-items: center;
+                flex-direction: column;
+                gap: 14px;
+                text-align: center;
+            }
+
+            .smoke-free-counter-wrap > div:last-child {
+                width: 100%;
+            }
+
+            .smoke-free-counter-large {
+                font-size: 1.55rem;
+                white-space: nowrap;
+            }
+
+            .smoke-free-ring {
+                width: 104px;
+                height: 104px;
+                flex-basis: 104px;
+            }
+
+            .smoke-free-ring::before {
+                width: 82px;
+                height: 82px;
+            }
+        }
     </style>
 </head>
 
@@ -148,6 +274,41 @@
     <div class="container">
         <h1>Fitness Journey Dashboard</h1>
         <p>Logged in as: <strong>{{ user.email }}</strong></p>
+
+        {% if 'suman' in user.email|lower %}
+        <div class="card-section smoke-free-hero" style="margin-top: 20px;">
+            <div class="smoke-free-kicker">Your strongest decision is still counting</div>
+            <div class="smoke-free-counter-wrap">
+                <div class="smoke-free-ring" id="smoke-free-ring" style="--smoke-progress: 0%;">
+                    <span class="smoke-free-ring-label">40 day<br>mission</span>
+                </div>
+                <div>
+                    <h3 style="color: #d1fae5;">Smoke-free streak</h3>
+                    <p style="margin-top: 4px;">Since 10 Sep 2026, 7:15 PM</p>
+                    <div id="smoke-free-counter" data-quit-at="2026-09-10T19:15:00" data-cigarettes-per-day="10" data-cost-per-cigarette="20" class="smoke-free-counter-large">Calculating...</div>
+                    <p class="smoke-free-pride">You chose your future over one cigarette.</p>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 18px;">
+                <div style="padding: 12px; border: 1px solid rgba(167, 243, 208, 0.2); border-radius: 8px;">
+                    <p style="font-size: 0.78rem; text-transform: uppercase;">Total smoke-free hours</p>
+                    <strong id="smoke-free-hours" style="display: block; color: #ecfdf5; font-size: 1.25rem; margin-top: 3px;">0 hrs</strong>
+                </div>
+                <div style="padding: 12px; border: 1px solid rgba(167, 243, 208, 0.2); border-radius: 8px;">
+                    <p style="font-size: 0.78rem; text-transform: uppercase;">Money saved so far</p>
+                    <strong id="smoke-free-savings" style="display: block; color: #ecfdf5; font-size: 1.25rem; margin-top: 3px;">Rs 0</strong>
+                </div>
+            </div>
+            <p style="margin-top: 10px; font-size: 0.8rem;">Based on 10 cigarettes per day at Rs 20 each.</p>
+            <div id="smoke-free-milestone" style="margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(167, 243, 208, 0.2);">
+                <p style="color: #6ee7b7; font-weight: 700; margin-bottom: 5px;">Your progress</p>
+                <h4 id="smoke-free-milestone-title" style="color: #ecfdf5; margin-bottom: 5px;">Loading milestone...</h4>
+                <p id="smoke-free-milestone-message" style="margin-bottom: 8px;">Loading your smoke-free achievement...</p>
+                <ul id="smoke-free-milestone-effects" style="padding-left: 20px; color: var(--text-muted); font-size: 0.9rem;"></ul>
+                <p id="smoke-free-next-milestone" style="margin-top: 10px; color: #a7f3d0; font-size: 0.85rem;"></p>
+            </div>
+        </div>
+        {% endif %}
 
         <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
 
@@ -513,6 +674,55 @@
                 <p><strong>Coach Tip:</strong> <em id="review-tip" style="color: #e9d5ff;">...</em></p>
             </div>
         </div>
+
+        {% if 'suman' in user.email|lower %}
+        <div class="card-section" style="border-color: rgba(59, 130, 246, 0.45);">
+            <h3 style="color: #93c5fd;">🍳 What should I eat next?</h3>
+            <p style="margin: 6px 0 14px;">Your coach will use today's remaining calories and macros to design one practical meal from what you have.</p>
+            <label for="meal-fridge-items">What is available in your fridge or pantry?</label>
+            <textarea id="meal-fridge-items" rows="3" placeholder="Example: chicken breast, eggs, paneer, rice, oats, dal, spinach, tomatoes, curd, bananas"></textarea>
+            <p style="margin: 8px 0 12px; font-size: 0.8rem;">Available equipment: pan, air fryer, 5L pressure cooker, boiler, grinder.</p>
+            <button id="meal-recommendation-btn" onclick="getMealRecommendation()" class="btn btn-primary" style="width: 100%; padding: 14px;">
+                Build my next meal
+            </button>
+
+            <div id="meal-recommendation-box" class="ai-feedback-box" style="display: none; margin-top: 18px;">
+                <h4 id="meal-recipe-name" style="color: #bfdbfe; margin-bottom: 6px;"></h4>
+                <p id="meal-why" style="margin-bottom: 14px;"></p>
+                <p style="color: #93c5fd; font-weight: 700; margin-bottom: 6px;">Ingredients and raw weights</p>
+                <ul id="meal-ingredients" style="padding-left: 20px; color: var(--text-muted); margin-bottom: 14px;"></ul>
+                <p style="color: #93c5fd; font-weight: 700; margin-bottom: 6px;">Step-by-step recipe</p>
+                <ol id="meal-steps" style="padding-left: 20px; color: var(--text-muted); margin-bottom: 14px;"></ol>
+                <p style="color: #93c5fd; font-weight: 700; margin-bottom: 6px;">Estimated macros</p>
+                <p id="meal-macros" style="color: #e2e8f0;"></p>
+                <p id="meal-fit" style="margin-top: 12px;"></p>
+                <p id="meal-safety" style="margin-top: 10px; font-size: 0.8rem; color: var(--text-muted);"></p>
+            </div>
+        </div>
+
+        <div class="card-section ai-coach-panel" style="border-color: rgba(16, 185, 129, 0.45);">
+            <h3 style="color: #6ee7b7;">🫁 Craving support</h3>
+            <p style="margin: 6px 0 16px 0;">Tell your coach what triggered the craving, or press the button for immediate help.</p>
+            <textarea id="craving-note" rows="2" placeholder="Optional: what triggered the craving? (stress, after food, friends...)"></textarea>
+            <button id="craving-help-btn" onclick="getCravingSupport()" class="btn btn-success" style="width: 100%; margin-top: 12px; padding: 14px;">
+                I have a craving. Help me stay smoke-free
+            </button>
+
+            <div id="craving-support-box" class="ai-feedback-box" style="display: none; margin-top: 18px; border-color: rgba(16, 185, 129, 0.35);">
+                <h4 id="craving-headline" style="color: #a7f3d0; margin-bottom: 8px;"></h4>
+                <p id="craving-friend-note" style="color: #d1fae5; font-weight: 700; margin-bottom: 10px;"></p>
+                <p id="craving-message" style="margin-bottom: 12px;"></p>
+                <p style="color: #6ee7b7; font-weight: 700; margin-bottom: 4px;">Your 10-minute challenge:</p>
+                <p id="craving-challenge" style="color: #ecfdf5; margin-bottom: 12px;"></p>
+                <p style="color: #6ee7b7; font-weight: 700; margin-bottom: 4px;">Do this now:</p>
+                <ol id="craving-actions" style="padding-left: 20px; color: var(--text-muted);"></ol>
+                <p id="craving-motivation" style="margin-top: 12px; color: #e2e8f0;"></p>
+                <p style="color: #6ee7b7; font-weight: 700; margin: 12px 0 4px;">What your saved money could do in Bangalore:</p>
+                <ul id="craving-money-ideas" style="padding-left: 20px; color: var(--text-muted);"></ul>
+                <p id="craving-safety" style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted);"></p>
+            </div>
+        </div>
+        {% endif %}
         {% endif %}
 
         <div class="card-section" style="background-color: rgba(30,41,59,0.25);">
@@ -531,6 +741,67 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        function updateSmokeFreeCounter() {
+            const counter = document.getElementById('smoke-free-counter');
+            if (!counter) return;
+
+            const quitAt = new Date(counter.dataset.quitAt);
+            const elapsedSeconds = Math.max(0, Math.floor((Date.now() - quitAt.getTime()) / 1000));
+            const days = Math.floor(elapsedSeconds / 86400);
+            const hours = Math.floor((elapsedSeconds % 86400) / 3600);
+            const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+            const seconds = elapsedSeconds % 60;
+            const totalHours = Math.floor(elapsedSeconds / 3600);
+            const cigarettesPerDay = Number(counter.dataset.cigarettesPerDay);
+            const costPerCigarette = Number(counter.dataset.costPerCigarette);
+            const dailySavings = cigarettesPerDay * costPerCigarette;
+            const savingsSoFar = (elapsedSeconds / 86400) * dailySavings;
+            const missionProgress = Math.min(100, (elapsedSeconds / 86400 / 40) * 100);
+            counter.textContent = `${days} days, ${hours} hrs, ${minutes} min, ${seconds} sec`;
+            document.getElementById('smoke-free-ring').style.setProperty('--smoke-progress', `${missionProgress}%`);
+            document.getElementById('smoke-free-hours').textContent = `${totalHours.toLocaleString()} hrs`;
+            document.getElementById('smoke-free-savings').textContent = `Rs ${Math.floor(savingsSoFar).toLocaleString()}`;
+        }
+
+        let smokeFreeMilestones = [];
+
+        function updateSmokeFreeMilestone(milestones) {
+            const counter = document.getElementById('smoke-free-counter');
+            const title = document.getElementById('smoke-free-milestone-title');
+            const message = document.getElementById('smoke-free-milestone-message');
+            const effects = document.getElementById('smoke-free-milestone-effects');
+            const next = document.getElementById('smoke-free-next-milestone');
+            if (!counter || !title || !message || !effects || !next) return;
+
+            const quitAt = new Date(counter.dataset.quitAt);
+            const elapsedDays = Math.max(0, (Date.now() - quitAt.getTime()) / 86400000);
+            const achieved = milestones.filter(item => item.days <= elapsedDays).pop() || milestones[0];
+            const upcoming = milestones.find(item => item.days > elapsedDays);
+
+            title.textContent = achieved.title;
+            message.textContent = achieved.message;
+            effects.innerHTML = achieved.effects.map(effect => `<li>${effect}</li>`).join('');
+            next.textContent = upcoming
+                ? `Next milestone: ${upcoming.title} in ${Math.ceil(upcoming.days - elapsedDays)} day${Math.ceil(upcoming.days - elapsedDays) === 1 ? '' : 's'}.`
+                : 'You have reached every milestone in this plan. Keep going.';
+        }
+
+        updateSmokeFreeCounter();
+        setInterval(() => {
+            updateSmokeFreeCounter();
+            if (smokeFreeMilestones.length) updateSmokeFreeMilestone(smokeFreeMilestones);
+        }, 1000);
+        fetch('/static/data/smoking_cessation_milestones.json')
+            .then(response => response.json())
+            .then(data => {
+                smokeFreeMilestones = data.milestones;
+                updateSmokeFreeMilestone(smokeFreeMilestones);
+            })
+            .catch(() => {
+                const message = document.getElementById('smoke-free-milestone-message');
+                if (message) message.textContent = 'Your progress is still counting. Keep going today.';
+            });
+
         function showLoadingOverlay() {
             const overlay = document.getElementById('loadingOverlay');
             if (overlay) overlay.classList.add('active');
@@ -601,6 +872,105 @@
                 });
         }
 
+        function getCravingSupport() {
+            const btn = document.getElementById('craving-help-btn');
+            const box = document.getElementById('craving-support-box');
+            const note = document.getElementById('craving-note').value.trim();
+            if (!btn || !box) return;
+
+            btn.innerText = "Your coach is thinking...";
+            btn.disabled = true;
+            showLoadingOverlay();
+
+            fetch(`/onboard/craving-support?uid={{ user.uid }}&note=${encodeURIComponent(note)}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Craving support request failed');
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('craving-headline').innerText = data.headline;
+                    document.getElementById('craving-friend-note').innerText = data.friend_note;
+                    document.getElementById('craving-message').innerText = data.message;
+                    document.getElementById('craving-challenge').innerText = data.challenge;
+                    document.getElementById('craving-actions').innerHTML = '';
+                    data.immediate_actions.forEach(action => {
+                        const item = document.createElement('li');
+                        item.innerText = action;
+                        document.getElementById('craving-actions').appendChild(item);
+                    });
+                    document.getElementById('craving-motivation').innerText = data.motivation;
+                    document.getElementById('craving-money-ideas').innerHTML = '';
+                    data.money_ideas.forEach(idea => {
+                        const item = document.createElement('li');
+                        item.innerText = idea;
+                        document.getElementById('craving-money-ideas').appendChild(item);
+                    });
+                    document.getElementById('craving-safety').innerText = data.safety_note;
+                    box.style.display = 'block';
+                    btn.innerText = "I have another craving. Help me stay smoke-free";
+                    btn.disabled = false;
+                    hideLoadingOverlay();
+                })
+                .catch(error => {
+                    console.error('Craving support failed:', error);
+                    document.getElementById('craving-message').innerText = 'Pause for 10 minutes, drink water, and move away from the smoking trigger. You can get through this wave.';
+                    box.style.display = 'block';
+                    btn.innerText = "Try craving support again";
+                    btn.disabled = false;
+                    hideLoadingOverlay();
+                });
+        }
+
+        function getMealRecommendation() {
+            const button = document.getElementById('meal-recommendation-btn');
+            const box = document.getElementById('meal-recommendation-box');
+            const fridgeItems = document.getElementById('meal-fridge-items').value.trim();
+            if (!button || !box) return;
+
+            button.innerText = "Building your meal...";
+            button.disabled = true;
+            showLoadingOverlay();
+
+            fetch(`/onboard/meal-recommendation?uid={{ user.uid }}&date={{ selected_date }}&fridge_items=${encodeURIComponent(fridgeItems)}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Meal recommendation request failed');
+                    return response.json();
+                })
+                .then(data => {
+                    const meal = data.recommendation;
+                    document.getElementById('meal-recipe-name').innerText = `${meal.recipe_name} (${data.remaining_calories} kcal remaining)`;
+                    document.getElementById('meal-why').innerText = meal.why_this_meal;
+                    document.getElementById('meal-ingredients').innerHTML = '';
+                    meal.ingredients.forEach(ingredient => {
+                        const item = document.createElement('li');
+                        item.innerText = `${ingredient.name}: ${ingredient.raw_weight_g} g raw - ${ingredient.preparation}`;
+                        document.getElementById('meal-ingredients').appendChild(item);
+                    });
+                    document.getElementById('meal-steps').innerHTML = '';
+                    meal.steps.forEach(step => {
+                        const item = document.createElement('li');
+                        item.innerText = step;
+                        document.getElementById('meal-steps').appendChild(item);
+                    });
+                    const macros = meal.macros;
+                    document.getElementById('meal-macros').innerText = `${macros.calories} kcal | Protein ${macros.protein_g} g | Fiber ${macros.fiber_g} g | Carbs ${macros.carbs_g} g | Fat ${macros.fat_g} g`;
+                    document.getElementById('meal-fit').innerText = meal.fit_summary;
+                    document.getElementById('meal-safety').innerText = meal.safety_note;
+                    box.style.display = 'block';
+                    button.innerText = "Build another meal";
+                    button.disabled = false;
+                    hideLoadingOverlay();
+                })
+                .catch(error => {
+                    console.error('Meal recommendation failed:', error);
+                    document.getElementById('meal-why').innerText = 'The meal coach could not respond right now. Add your available ingredients and try again.';
+                    box.style.display = 'block';
+                    button.innerText = "Try meal coach again";
+                    button.disabled = false;
+                    hideLoadingOverlay();
+                });
+        }
+
         function toggleEditRow(index) {
             const row = document.getElementById(`edit-row-${index}`);
             if (!row) return;
@@ -612,6 +982,17 @@
 
         function copyDaySummary() {
             let summary = `📋 Fitness Summary for ${selectedDate}\n\n`;
+
+            const smokeFreeCounter = document.getElementById('smoke-free-counter');
+            if (smokeFreeCounter) {
+                const quitAt = new Date(smokeFreeCounter.dataset.quitAt);
+                const elapsedSeconds = Math.max(0, Math.floor((Date.now() - quitAt.getTime()) / 1000));
+                const smokeFreeDays = Math.floor(elapsedSeconds / 86400);
+                const smokeFreeHours = Math.floor((elapsedSeconds % 86400) / 3600);
+                const totalSmokeFreeHours = Math.floor(elapsedSeconds / 3600);
+                summary += `🚭 Smoke-free: ${smokeFreeDays} days, ${smokeFreeHours} hrs\n`;
+                summary += `⏳ Total time not smoking: ${totalSmokeFreeHours.toLocaleString()} hrs\n\n`;
+            }
             
             // Weight
             if (dailyLogData.weight) {

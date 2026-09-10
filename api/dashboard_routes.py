@@ -4,7 +4,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from services.user_service import get_user
 from services.tracking_service import get_daily_log, get_logs_in_range, get_weight_range_stats
-from services.ai_service import analyze_weekly_report, analyze_consistency_review, analyze_progress_report
+from services.ai_service import analyze_weekly_report, analyze_consistency_review, analyze_progress_report, generate_craving_support
+from services.ai_service import analyze_weekly_report, analyze_consistency_review, analyze_progress_report, generate_craving_support, recommend_next_meal
 
 router = APIRouter(prefix="/onboard", tags=["Dashboard"])
 templates = Jinja2Templates(directory="templates")
@@ -114,8 +115,15 @@ async def dashboard_page(request: Request, uid: str, date: str = None):
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
-        context={"user": user_data, "journey_status": journey_status, "selected_date": date, "daily_log": daily_log, "weight_stats": weight_stats}
+        context={
+            "user": user_data,
+            "journey_status": journey_status,
+            "selected_date": date,
+            "daily_log": daily_log,
+            "weight_stats": weight_stats
+        }
     )
+
 @router.post("/update-target-calories")
 async def update_target_calories(uid: str = Form(...), target_calories: int = Form(...), date: str = Form(None)):
     from services.user_service import save_user
@@ -230,7 +238,8 @@ async def weekly_report(request: Request, uid: str, start_date: str = None, end_
             "total_consumed": 0,
             "logs_count": 0,
             "weight": None,
-            "total_protein": 0
+            "total_protein": 0,
+            "steps": 0
         }
 
     total_consumed = 0
@@ -240,6 +249,7 @@ async def weekly_report(request: Request, uid: str, start_date: str = None, end_
             dates_map[d]["total_consumed"] = data.get("total_consumed", 0)
             dates_map[d]["logs_count"] = len(data.get("logs", []))
             dates_map[d]["weight"] = data.get("weight")
+            dates_map[d]["steps"] = data.get("steps", 0)
             
             # Sum protein from itemized food logs for that day
             day_logs = data.get("logs", [])
@@ -302,6 +312,92 @@ async def ai_review(uid: str):
     return {
         "status_evaluation": review.get("status_evaluation", "Unable to evaluate consistency."),
         "actionable_tip": review.get("actionable_tip", "Keep logging regularly and stay consistent with meal balance.")
+    }
+
+@router.get("/craving-support")
+async def craving_support(uid: str, note: str = ""):
+    user_data = get_user(uid)
+    if not user_data:
+        raise HTTPException(status_code=404, detail="User not found")
+    if "suman" not in user_data.get("email", "").lower():
+        raise HTTPException(status_code=403, detail="Craving support is not enabled for this account")
+
+    today = datetime.today()
+    start_date = (today - timedelta(days=6)).strftime('%Y-%m-%d')
+    end_date = today.strftime('%Y-%m-%d')
+    weekly_progress = get_logs_in_range(uid, start_date, end_date)
+    weekly_progress.sort(key=lambda entry: entry.get("date", ""))
+
+    quit_at = datetime.strptime("2026-09-10 19:15:00", "%Y-%m-%d %H:%M:%S")
+    elapsed_seconds = max(0, int((today - quit_at).total_seconds()))
+    smoke_free_days = elapsed_seconds // 86400
+    smoke_free_hours = elapsed_seconds // 3600
+    money_saved = int((elapsed_seconds / 86400) * 10 * 20)
+    next_10_days_savings = 10 * 10 * 20
+    support = generate_craving_support(
+        user_data=user_data,
+        weekly_progress=weekly_progress,
+        smoke_free_days=smoke_free_days,
+        smoke_free_hours=smoke_free_hours,
+        money_saved=money_saved,
+        next_10_days_savings=next_10_days_savings,
+        craving_note=note[:500]
+    )
+
+    return {
+        "headline": support.get("headline", "You can get through this craving."),
+        "message": support.get("message", "Pause for 10 minutes and let the craving pass."),
+        "immediate_actions": support.get("immediate_actions", []),
+        "motivation": support.get("motivation", "Protect the progress you have already made."),
+        "safety_note": support.get("safety_note", "Reach out to a healthcare professional if you need extra support."),
+        "friend_note": support.get("friend_note", "You have got this. Stay with the next smoke-free minute."),
+        "challenge": support.get("challenge", "Complete a 10-minute walk without smoking."),
+        "money_ideas": support.get("money_ideas", []),
+        "smoke_free_days": smoke_free_days,
+        "smoke_free_hours": smoke_free_hours,
+        "money_saved": money_saved,
+        "next_10_days_savings": next_10_days_savings,
+        "weekly_progress_days": len(weekly_progress)
+    }
+
+@router.get("/meal-recommendation")
+async def meal_recommendation(uid: str, fridge_items: str = "", date: str = None):
+    user_data = get_user(uid)
+    if not user_data:
+        raise HTTPException(status_code=404, detail="User not found")
+    if "suman" not in user_data.get("email", "").lower():
+        raise HTTPException(status_code=403, detail="Meal recommendation is not enabled for this account")
+
+    selected_date = date or datetime.today().strftime('%Y-%m-%d')
+    log_data = get_daily_log(uid, selected_date) or {}
+    logs = log_data.get("logs", [])
+    daily_log = {
+        "total_consumed": log_data.get("total_consumed", 0),
+        "total_protein": log_data.get("total_protein", sum(item.get("protein", 0) for item in logs)),
+        "total_fiber": log_data.get("total_fiber", sum(item.get("fiber", 0) for item in logs)),
+        "total_carbs": log_data.get("total_carbs", sum(item.get("carbs", 0) for item in logs)),
+        "logs": logs
+    }
+    target_calories = user_data.get("target_calories", 0) or 0
+    remaining_calories = max(0, target_calories - daily_log["total_consumed"])
+    equipment = "pan, air fryer, 5L pressure cooker, boiler, grinder"
+
+    try:
+        recommendation = recommend_next_meal(
+            user_data=user_data,
+            daily_log=daily_log,
+            remaining_calories=remaining_calories,
+            fridge_items=fridge_items[:1000],
+            equipment=equipment
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Meal recommendation failed: {str(exc)}")
+
+    return {
+        "recommendation": recommendation,
+        "remaining_calories": remaining_calories,
+        "selected_date": selected_date,
+        "equipment": equipment
     }
 
 @router.get("/progress-review")
