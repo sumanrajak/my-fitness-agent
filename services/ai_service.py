@@ -296,7 +296,7 @@ def generate_craving_support(
     - Money saved so far by not buying cigarettes: Rs {money_saved}
     - Additional money that can be saved over the next 10 smoke-free days: Rs {next_10_days_savings}
     - First 40 smoke-free days are especially important to this user
-    - Smoking habit before quitting: 10 cigarettes per day at Rs 20 each (Rs 200 per day)
+    - Smoking habit before quitting: 12 cigarettes per day at Rs 20 each (Rs 240 per day)
     - Starting weight: {starting_weight} kg
     - Current weight: {current_weight} kg
     - Target weight: {target_weight} kg
@@ -346,9 +346,9 @@ def generate_craving_support(
             ,"friend_note": f"Suman, look at you: {elapsed_label} smoke-free and still standing. This craving is loud, but your progress is louder.",
             "challenge": "Start a 10-minute victory lap: drink water, walk until the timer ends, then take one proud breath and say, 'I did not smoke.'",
             "money_ideas": [
-                "Save today's Rs 200 toward a healthier meal or fruit and curd; Bangalore prices vary.",
-                "Put the Rs 200 into a gym or recovery fund for a small accessory; prices vary by shop.",
-                "Keep it in a separate savings pocket and watch the next 10 days become Rs 2,000; prices and savings goals vary."
+                "Save today's Rs 240 toward a healthier meal or fruit and curd; Bangalore prices vary.",
+                "Put the Rs 240 into a gym or recovery fund for a small accessory; prices vary by shop.",
+                "Keep it in a separate savings pocket and watch the next 10 days become Rs 2,400; prices and savings goals vary."
             ]
         }
 

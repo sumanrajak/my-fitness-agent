@@ -59,5 +59,40 @@
         "You have created a full year of evidence that you can keep going."
       ]
     }
+  ],
+  "early_milestones": [
+    {"hours": 0, "title": "Hour 0: Start again", "message": "You did not lose the lesson from the last three days. You are starting with more knowledge, and this time we only need to win the next four hours.", "effects": ["You have stopped adding new smoke exposure.", "Your recovery begins from this decision."]},
+    {"hours": 4, "title": "Hour 4: First promise kept", "message": "Four hours smoke-free. Drink water, change your surroundings, and protect the next four hours.", "effects": ["Carbon monoxide exposure has stopped during these hours.", "Your body is beginning to adjust to the absence of another cigarette."]},
+    {"hours": 8, "title": "Hour 8: Keep the wave moving", "message": "Eight hours complete. A craving is temporary; this decision is building your new identity.", "effects": ["Carbon monoxide levels can begin moving toward normal.", "More oxygen can become available to your body as exposure falls."]},
+    {"hours": 12, "title": "Hour 12: Half a day strong", "message": "Twelve hours smoke-free. You have already interrupted the old routine for half a day.", "effects": ["Your heart and lungs have had half a day without new smoke.", "You have avoided the repeated rise in smoke-related toxins from your usual routine."]},
+    {"hours": 16, "title": "Hour 16: You are still in control", "message": "Sixteen hours complete. The goal is not perfection; it is the next smoke-free choice.", "effects": ["Your circulation continues adapting without new smoke exposure.", "Each handled trigger strengthens your smoke-free coping pattern."]},
+    {"hours": 20, "title": "Hour 20: Almost one day", "message": "Twenty hours strong. Your first full day is close. Do not negotiate with a craving now.", "effects": ["Your body has spent most of a day without cigarette smoke.", "Breathing and energy may begin to feel different for some people."]},
+    {"hours": 24, "title": "Hour 24: One full day", "message": "One full day smoke-free. You have proved that you can get through an entire day without smoking.", "effects": ["Carbon monoxide levels can return toward normal after quitting.", "Your heart and lungs have completed a full day without new smoke exposure."]},
+    {"hours": 28, "title": "Hour 28: Day two begins", "message": "Twenty-eight hours complete. Keep your next target small and your reason visible.", "effects": ["Your recovery continues without another dose of smoke toxins.", "Cravings are becoming experiences you can observe and outlast."]},
+    {"hours": 32, "title": "Hour 32: Protect your progress", "message": "Thirty-two hours smoke-free. You are not going back for one temporary feeling.", "effects": ["Your airways continue getting a break from smoke irritants.", "Your body is spending more time in a smoke-free state."]},
+    {"hours": 36, "title": "Hour 36: Stronger response", "message": "Thirty-six hours complete. Each craving you outlast makes the next response more familiar.", "effects": ["Taste and smell may begin to feel clearer for some people.", "Your brain is practicing new responses to old smoking cues."]},
+    {"hours": 40, "title": "Hour 40: Keep your future", "message": "Forty hours smoke-free. Your gym goals and your breathing deserve this decision.", "effects": ["Avoiding smoke protects your breathing during future activity.", "Your circulation continues to benefit from no new exposure."]},
+    {"hours": 44, "title": "Hour 44: Almost two days", "message": "Forty-four hours complete. You are close to two days; stay with the plan one hour at a time.", "effects": ["Your body continues clearing and processing the effects of smoking.", "You have protected another smoke-free training and recovery window."]},
+    {"hours": 48, "title": "Hour 48: Two days strong", "message": "Two full days smoke-free. You have already survived the moments that used to decide for you.", "effects": ["Nicotine is largely out of the body for many people by this stage.", "Taste and smell may begin improving as your senses recover."]},
+    {"hours": 52, "title": "Hour 52: Make the next choice", "message": "Fifty-two hours complete. Eat, hydrate, move, and keep the streak protected.", "effects": ["Your lungs continue working without new smoke irritation.", "Hydration, food, and movement can help you manage withdrawal sensations."]},
+    {"hours": 56, "title": "Hour 56: Your habit is changing", "message": "Fifty-six hours smoke-free. The old pattern is losing another opportunity to control you.", "effects": ["Your smoke-free routine is becoming more familiar.", "Exercise can benefit from continued avoidance of smoke exposure."]},
+    {"hours": 60, "title": "Hour 60: Almost three days", "message": "Sixty hours complete. You are close to the 72-hour mark. Keep going through this final stretch.", "effects": ["Your airways continue receiving time away from smoke irritants.", "You have built 60 hours of recovery and practice."]},
+    {"hours": 64, "title": "Hour 64: Stay steady", "message": "Sixty-four hours smoke-free. A calm response today is a powerful investment in tomorrow's confidence.", "effects": ["Your circulation and breathing continue adapting over time.", "Cravings can become easier to manage as your new routine strengthens."]},
+    {"hours": 68, "title": "Hour 68: Four hours to go", "message": "Sixty-eight hours complete. Four more hours takes you through the crucial first 72 hours.", "effects": ["You are approaching a major early recovery milestone.", "Your body has had nearly three days without new cigarette smoke."]},
+    {"hours": 72, "title": "Hour 72: Crucial 3-day victory", "message": "Seventy-two hours smoke-free. You have crossed the first three-day barrier. This time, keep building from what you learned.", "effects": ["Breathing may begin to feel easier as airways relax for some people.", "Energy can begin improving, while cravings may still come and go."]}
+  ],
+  "daily_quotes": [
+    "Today is not a test of forever. It is one brave decision, and you are making it now.",
+    "A craving is a wave. You do not have to become the wave; you only have to outlast it.",
+    "Your future workouts are being built in the moments when you choose not to smoke.",
+    "You are not losing a cigarette. You are gaining breath, control, time, and self-respect.",
+    "The old routine made a promise. Your new life is keeping one.",
+    "You have already done hard things. This craving is another moment you can leave behind.",
+    "Every smoke-free hour is proof that your decision is stronger than your impulse.",
+    "Protect the progress that your past self worked to give you.",
+    "Your lungs, your gym goals, and your future are all on your side today.",
+    "Do not trade a lasting victory for a temporary feeling.",
+    "The strongest version of you is built quietly, one smoke-free choice at a time.",
+    "You do not need perfect motivation. You need the next right action."
   ]
 }

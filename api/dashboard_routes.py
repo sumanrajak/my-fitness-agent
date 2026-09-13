@@ -328,12 +328,12 @@ async def craving_support(uid: str, note: str = ""):
     weekly_progress = get_logs_in_range(uid, start_date, end_date)
     weekly_progress.sort(key=lambda entry: entry.get("date", ""))
 
-    quit_at = datetime.strptime("2026-09-10 19:15:00", "%Y-%m-%d %H:%M:%S")
+    quit_at = datetime.strptime("2026-09-13 02:00:00", "%Y-%m-%d %H:%M:%S")
     elapsed_seconds = max(0, int((today - quit_at).total_seconds()))
     smoke_free_days = elapsed_seconds // 86400
     smoke_free_hours = elapsed_seconds // 3600
-    money_saved = int((elapsed_seconds / 86400) * 10 * 20)
-    next_10_days_savings = 10 * 10 * 20
+    money_saved = int((elapsed_seconds / 86400) * 12 * 20)
+    next_10_days_savings = 10 * 12 * 20
     support = generate_craving_support(
         user_data=user_data,
         weekly_progress=weekly_progress,

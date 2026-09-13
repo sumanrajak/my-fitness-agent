@@ -284,10 +284,20 @@
                 </div>
                 <div>
                     <h3 style="color: #d1fae5;">Smoke-free streak</h3>
-                    <p style="margin-top: 4px;">Since 10 Sep 2026, 7:15 PM</p>
-                    <div id="smoke-free-counter" data-quit-at="2026-09-10T19:15:00" data-cigarettes-per-day="10" data-cost-per-cigarette="20" class="smoke-free-counter-large">Calculating...</div>
+                    <p style="margin-top: 4px;">Since 13 Sep 2026, 2:00 AM</p>
+                    <div id="smoke-free-counter" data-quit-at="2026-09-13T02:00:00" data-cigarettes-per-day="12" data-cost-per-cigarette="20" class="smoke-free-counter-large">Calculating...</div>
                     <p class="smoke-free-pride">You chose your future over one cigarette.</p>
                 </div>
+            </div>
+            <div style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 7px;">
+                    <span id="streak-stage-label" style="color: #a7f3d0; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;">First 3 days</span>
+                    <span id="three-day-progress-label" style="color: #d1fae5; font-size: 0.85rem; font-weight: 700;">0 / 72 hrs</span>
+                </div>
+                <div style="height: 12px; overflow: hidden; border: 1px solid rgba(167, 243, 208, 0.3); border-radius: 999px; background: rgba(167, 243, 208, 0.1);">
+                    <div id="three-day-progress-bar" style="height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg, #10b981, #a7f3d0); box-shadow: 0 0 14px rgba(52, 211, 153, 0.55); transition: width 0.6s ease;"></div>
+                </div>
+                <p id="three-day-progress-message" style="margin-top: 7px; font-size: 0.8rem;">72 hours is your first major victory.</p>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 18px;">
                 <div style="padding: 12px; border: 1px solid rgba(167, 243, 208, 0.2); border-radius: 8px;">
@@ -299,10 +309,11 @@
                     <strong id="smoke-free-savings" style="display: block; color: #ecfdf5; font-size: 1.25rem; margin-top: 3px;">Rs 0</strong>
                 </div>
             </div>
-            <p style="margin-top: 10px; font-size: 0.8rem;">Based on 10 cigarettes per day at Rs 20 each.</p>
+            <p style="margin-top: 10px; font-size: 0.8rem;">Based on 12 cigarettes per day at Rs 20 each.</p>
             <div id="smoke-free-milestone" style="margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(167, 243, 208, 0.2);">
                 <p style="color: #6ee7b7; font-weight: 700; margin-bottom: 5px;">Your progress</p>
                 <h4 id="smoke-free-milestone-title" style="color: #ecfdf5; margin-bottom: 5px;">Loading milestone...</h4>
+                <p id="smoke-free-daily-quote" style="color: #d1fae5; font-size: 1rem; font-style: italic; line-height: 1.55; margin: 10px 0 12px;">Loading today's motivation...</p>
                 <p id="smoke-free-milestone-message" style="margin-bottom: 8px;">Loading your smoke-free achievement...</p>
                 <ul id="smoke-free-milestone-effects" style="padding-left: 20px; color: var(--text-muted); font-size: 0.9rem;"></ul>
                 <p id="smoke-free-next-milestone" style="margin-top: 10px; color: #a7f3d0; font-size: 0.85rem;"></p>
@@ -757,33 +768,83 @@
             const dailySavings = cigarettesPerDay * costPerCigarette;
             const savingsSoFar = (elapsedSeconds / 86400) * dailySavings;
             const missionProgress = Math.min(100, (elapsedSeconds / 86400 / 40) * 100);
+            const totalHoursElapsed = elapsedSeconds / 3600;
+            let stagedProgress;
+            let stagedLabel;
+            let stagedValue;
+            let stagedMessage;
+
+            if (totalHoursElapsed < 72) {
+                stagedProgress = (totalHoursElapsed / 72) * 100;
+                stagedLabel = 'First 3 days';
+                stagedValue = `${Math.min(72, Math.floor(totalHoursElapsed))} / 72 hrs`;
+                stagedMessage = `${Math.ceil(72 - totalHoursElapsed)} hours until your 3-day victory.`;
+            } else if (totalHoursElapsed < 168) {
+                stagedProgress = ((totalHoursElapsed - 72) / (168 - 72)) * 100;
+                stagedLabel = 'Next target: 7 days';
+                stagedValue = `${Math.min(7, Math.floor(totalHoursElapsed / 24))} / 7 days`;
+                stagedMessage = `${Math.ceil(168 - totalHoursElapsed)} hours until your 7-day victory.`;
+            } else {
+                stagedProgress = Math.min(100, ((totalHoursElapsed - 168) / (720 - 168)) * 100);
+                stagedLabel = 'Next target: 30 days';
+                stagedValue = `${Math.min(30, Math.floor(totalHoursElapsed / 24))} / 30 days`;
+                stagedMessage = totalHoursElapsed >= 720
+                    ? '30 days complete. You have built a powerful smoke-free foundation.'
+                    : `${Math.ceil(720 - totalHoursElapsed)} hours until your 30-day victory.`;
+            }
             counter.textContent = `${days} days, ${hours} hrs, ${minutes} min, ${seconds} sec`;
             document.getElementById('smoke-free-ring').style.setProperty('--smoke-progress', `${missionProgress}%`);
+            document.getElementById('three-day-progress-bar').style.width = `${stagedProgress}%`;
+            document.getElementById('streak-stage-label').textContent = stagedLabel;
+            document.getElementById('three-day-progress-label').textContent = stagedValue;
+            document.getElementById('three-day-progress-message').textContent = stagedMessage;
             document.getElementById('smoke-free-hours').textContent = `${totalHours.toLocaleString()} hrs`;
             document.getElementById('smoke-free-savings').textContent = `Rs ${Math.floor(savingsSoFar).toLocaleString()}`;
         }
 
         let smokeFreeMilestones = [];
+        let smokeFreeMilestoneQuotes = [];
+        let smokeFreeEarlyMilestones = [];
 
         function updateSmokeFreeMilestone(milestones) {
             const counter = document.getElementById('smoke-free-counter');
             const title = document.getElementById('smoke-free-milestone-title');
+            const quote = document.getElementById('smoke-free-daily-quote');
             const message = document.getElementById('smoke-free-milestone-message');
             const effects = document.getElementById('smoke-free-milestone-effects');
             const next = document.getElementById('smoke-free-next-milestone');
-            if (!counter || !title || !message || !effects || !next) return;
+            if (!counter || !title || !quote || !message || !effects || !next) return;
 
             const quitAt = new Date(counter.dataset.quitAt);
-            const elapsedDays = Math.max(0, (Date.now() - quitAt.getTime()) / 86400000);
+            const elapsedHours = Math.max(0, (Date.now() - quitAt.getTime()) / 3600000);
+            const elapsedDays = elapsedHours / 24;
+            const earlyMilestone = smokeFreeEarlyMilestones
+                .filter(item => item.hours <= elapsedHours)
+                .pop();
+            const nextEarlyMilestone = smokeFreeEarlyMilestones.find(item => item.hours > elapsedHours);
             const achieved = milestones.filter(item => item.days <= elapsedDays).pop() || milestones[0];
             const upcoming = milestones.find(item => item.days > elapsedDays);
+            const quoteIndex = smokeFreeMilestoneQuotes.length
+                ? Math.floor(elapsedDays) % smokeFreeMilestoneQuotes.length
+                : 0;
+            const dailyQuote = smokeFreeMilestoneQuotes[quoteIndex] || "One smoke-free choice at a time, Suman. You are still moving forward.";
 
-            title.textContent = achieved.title;
-            message.textContent = achieved.message;
-            effects.innerHTML = achieved.effects.map(effect => `<li>${effect}</li>`).join('');
-            next.textContent = upcoming
-                ? `Next milestone: ${upcoming.title} in ${Math.ceil(upcoming.days - elapsedDays)} day${Math.ceil(upcoming.days - elapsedDays) === 1 ? '' : 's'}.`
-                : 'You have reached every milestone in this plan. Keep going.';
+            title.textContent = earlyMilestone && elapsedHours < 72 ? earlyMilestone.title : achieved.title;
+            quote.textContent = `“${dailyQuote}”`;
+            message.textContent = earlyMilestone && elapsedHours < 72 ? earlyMilestone.message : achieved.message;
+            const displayedEffects = earlyMilestone && elapsedHours < 72
+                ? earlyMilestone.effects
+                : achieved.effects;
+            effects.innerHTML = (displayedEffects || []).map(effect => `<li>${effect}</li>`).join('');
+            if (elapsedHours < 72 && nextEarlyMilestone) {
+                const hoursUntilNext = Math.ceil(nextEarlyMilestone.hours - elapsedHours);
+                next.textContent = `Next milestone: ${nextEarlyMilestone.title} in ${hoursUntilNext} hour${hoursUntilNext === 1 ? '' : 's'}.`;
+            } else if (upcoming) {
+                const daysUntilNext = Math.ceil(upcoming.days - elapsedDays);
+                next.textContent = `Next milestone: ${upcoming.title} in ${daysUntilNext} day${daysUntilNext === 1 ? '' : 's'}.`;
+            } else {
+                next.textContent = 'You have reached every milestone in this plan. Keep going.';
+            }
         }
 
         updateSmokeFreeCounter();
@@ -791,10 +852,12 @@
             updateSmokeFreeCounter();
             if (smokeFreeMilestones.length) updateSmokeFreeMilestone(smokeFreeMilestones);
         }, 1000);
-        fetch('/static/data/smoking_cessation_milestones.json')
+        fetch('/static/data/smoking_cessation_milestones.json?v=2')
             .then(response => response.json())
             .then(data => {
                 smokeFreeMilestones = data.milestones;
+                smokeFreeMilestoneQuotes = data.daily_quotes || [];
+                smokeFreeEarlyMilestones = data.early_milestones || [];
                 updateSmokeFreeMilestone(smokeFreeMilestones);
             })
             .catch(() => {
@@ -888,24 +951,24 @@
                     return response.json();
                 })
                 .then(data => {
-                    document.getElementById('craving-headline').innerText = data.headline;
-                    document.getElementById('craving-friend-note').innerText = data.friend_note;
-                    document.getElementById('craving-message').innerText = data.message;
-                    document.getElementById('craving-challenge').innerText = data.challenge;
+                    document.getElementById('craving-headline').innerText = data.headline || 'You can get through this craving.';
+                    document.getElementById('craving-friend-note').innerText = data.friend_note || 'You have got this. Stay with the next smoke-free minute.';
+                    document.getElementById('craving-message').innerText = data.message || 'Pause for 10 minutes and let the craving pass.';
+                    document.getElementById('craving-challenge').innerText = data.challenge || 'Complete a 10-minute walk without smoking.';
                     document.getElementById('craving-actions').innerHTML = '';
-                    data.immediate_actions.forEach(action => {
+                    (data.immediate_actions || []).forEach(action => {
                         const item = document.createElement('li');
                         item.innerText = action;
                         document.getElementById('craving-actions').appendChild(item);
                     });
-                    document.getElementById('craving-motivation').innerText = data.motivation;
+                    document.getElementById('craving-motivation').innerText = data.motivation || 'Protect the progress you have already made.';
                     document.getElementById('craving-money-ideas').innerHTML = '';
-                    data.money_ideas.forEach(idea => {
+                    (data.money_ideas || []).forEach(idea => {
                         const item = document.createElement('li');
                         item.innerText = idea;
                         document.getElementById('craving-money-ideas').appendChild(item);
                     });
-                    document.getElementById('craving-safety').innerText = data.safety_note;
+                    document.getElementById('craving-safety').innerText = data.safety_note || 'Reach out to a healthcare professional if needed.';
                     box.style.display = 'block';
                     btn.innerText = "I have another craving. Help me stay smoke-free";
                     btn.disabled = false;
