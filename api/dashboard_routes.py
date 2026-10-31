@@ -1,14 +1,102 @@
+import json
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Request, HTTPException, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
-from services.user_service import get_user
+from firebase_admin import auth as firebase_auth
+from services.user_service import get_user, get_recent_reanalysis_history
 from services.tracking_service import get_daily_log, get_logs_in_range, get_weight_range_stats
-from services.ai_service import analyze_weekly_report, analyze_consistency_review, analyze_progress_report, generate_craving_support
-from services.ai_service import analyze_weekly_report, analyze_consistency_review, analyze_progress_report, generate_craving_support, recommend_next_meal
+from services.ai_service import (
+    analyze_weekly_report,
+    analyze_consistency_review,
+    analyze_progress_report,
+    generate_craving_support,
+    recommend_next_meal,
+    stream_fitness_chat,
+)
+from schemas.chat import ChatRequest
 
 router = APIRouter(prefix="/onboard", tags=["Dashboard"])
 templates = Jinja2Templates(directory="templates")
+
+@router.get("/chat", response_class=HTMLResponse)
+async def fitness_chat_page(request: Request, uid: str):
+    user_data = get_user(uid)
+    if not user_data:
+        return RedirectResponse(url="/")
+    try:
+        claims = firebase_auth.verify_session_cookie(
+            request.cookies.get("fitness_session", ""), check_revoked=True
+        )
+        if claims.get("uid") != uid:
+            raise ValueError("Session does not match user")
+    except Exception:
+        return RedirectResponse(url="/", status_code=303)
+
+    return templates.TemplateResponse(
+        name="fitness_chat.html",
+        request=request,
+        context={"user": user_data},
+    )
+
+@router.post("/chat/stream")
+async def fitness_chat_stream(payload: ChatRequest, request: Request):
+    try:
+        claims = firebase_auth.verify_session_cookie(
+            request.cookies.get("fitness_session", ""), check_revoked=True
+        )
+        if claims.get("uid") != payload.uid:
+            raise ValueError("Session does not match user")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Please sign in again to use the fitness coach.")
+
+    user_data = get_user(payload.uid)
+    if not user_data:
+        raise HTTPException(status_code=404, detail="User profile not found.")
+
+    messages = [message.model_dump() for message in payload.messages]
+    if any(message["role"] == "user" and len(message["content"]) > 1500 for message in messages):
+        raise HTTPException(status_code=422, detail="User messages must be 1,500 characters or fewer.")
+    if not messages or messages[-1]["role"] != "user":
+        raise HTTPException(status_code=400, detail="The last message must be from the user.")
+    if messages[0]["role"] != "user" or any(
+        left["role"] == right["role"] for left, right in zip(messages, messages[1:])
+    ):
+        raise HTTPException(status_code=400, detail="Chat messages must alternate between user and coach.")
+
+    end_dt = datetime.today()
+    start_date = (end_dt - timedelta(days=6)).strftime('%Y-%m-%d')
+    end_date = end_dt.strftime('%Y-%m-%d')
+    recent_logs = get_logs_in_range(payload.uid, start_date, end_date)
+    recent_logs.sort(key=lambda entry: entry.get("date", ""), reverse=True)
+    reanalysis_history = get_recent_reanalysis_history(payload.uid)
+
+    def token_stream():
+        try:
+            for text in stream_fitness_chat(user_data, reanalysis_history, recent_logs, messages):
+                # Newline-delimited JSON keeps chunks safe to parse even when text has special characters.
+                yield json.dumps({"text": text}, ensure_ascii=False) + "\n"
+        except Exception as exc:
+            print(f"Fitness chat stream failed: {exc}")
+            yield json.dumps({"error": "The coach could not respond right now. Please try again."}) + "\n"
+
+    return StreamingResponse(
+        token_stream(),
+        media_type="application/x-ndjson",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+@router.get("/guide", response_class=HTMLResponse)
+async def app_guide(request: Request, uid: str):
+    user_data = get_user(uid)
+    if not user_data:
+        return RedirectResponse(url="/")
+
+    return templates.TemplateResponse(
+        name="app_guide.html",
+        request=request,
+        context={"user": user_data}
+    )
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page(request: Request, uid: str, date: str = None):
@@ -328,7 +416,7 @@ async def craving_support(uid: str, note: str = ""):
     weekly_progress = get_logs_in_range(uid, start_date, end_date)
     weekly_progress.sort(key=lambda entry: entry.get("date", ""))
 
-    quit_at = datetime.strptime("2026-09-25 00:02:00", "%Y-%m-%d %H:%M:%S")
+    quit_at = datetime.strptime("2026-10-31 14:36:23", "%Y-%m-%d %H:%M:%S")
     elapsed_seconds = max(0, int((today - quit_at).total_seconds()))
     smoke_free_days = elapsed_seconds // 86400
     smoke_free_hours = elapsed_seconds // 3600

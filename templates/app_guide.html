@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Guide | AI Fitness Coach</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .guide-hero {
+            padding: clamp(20px, 5vw, 36px);
+            margin: 18px 0 22px;
+            border: 1px solid rgba(96, 165, 250, 0.35);
+            border-radius: var(--radius-md);
+            background: linear-gradient(140deg, rgba(30, 58, 138, 0.28), rgba(15, 23, 42, 0.7));
+        }
+        .guide-eyebrow { color: #93c5fd; font-size: .75rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+        .guide-hero h1 { margin: 5px 0 10px; }
+        .guide-hero p { max-width: 760px; font-size: 1rem; }
+        .guide-nav { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 20px; }
+        .guide-nav a { padding: 8px 11px; border: 1px solid var(--border-color); border-radius: 999px; background: rgba(15, 23, 42, .55); color: #bfdbfe; font-size: .84rem; }
+        .guide-section { scroll-margin-top: 16px; }
+        .guide-section > p { margin: 8px 0 16px; }
+        .guide-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .guide-card { display: flex; align-items: flex-start; gap: 12px; min-width: 0; padding: 16px; border: 1px solid rgba(148, 163, 184, .18); border-radius: var(--radius-sm); background: rgba(15, 23, 42, .48); }
+        .guide-icon { display: grid; flex: 0 0 32px; width: 32px; height: 32px; place-items: center; border-radius: 50%; background: rgba(59, 130, 246, .18); color: #bfdbfe; font-weight: 800; }
+        .guide-card h3 { margin: 2px 0 6px; font-size: 1rem; }
+        .guide-card p, .guide-card li { font-size: .9rem; line-height: 1.6; }
+        .guide-card ul { padding-left: 18px; color: var(--text-muted); }
+        .guide-callout { padding: 16px; border-left: 4px solid var(--accent-success); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: rgba(6, 78, 59, .18); }
+        .guide-callout p { line-height: 1.65; }
+        .guide-math { display: block; margin: 9px 0; color: #dbeafe; font-size: 1rem; font-weight: 750; }
+        .guide-disclaimer { margin-top: 12px; font-size: .8rem; line-height: 1.55; }
+        @media (max-width: 620px) {
+            .container { padding: 18px 13px; }
+            .guide-hero { padding: 20px 16px; }
+            .guide-grid { grid-template-columns: 1fr; gap: 10px; }
+            .guide-card { padding: 14px 12px; }
+            .guide-card p, .guide-card li { font-size: .88rem; }
+            .guide-nav { gap: 7px; }
+            .guide-nav a { font-size: .78rem; }
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <a href="/onboard/dashboard?uid={{ user.uid }}" class="btn btn-dark">← Back to dashboard</a>
+        <header class="guide-hero">
+            <p class="guide-eyebrow">A practical guide to your fitness data</p>
+            <h1>How to use your fitness app</h1>
+            <p>Learn how to log meals, understand calorie targets and deficits, review weekly insights, update your goals, and read your estimated weight graph. The estimates help you see patterns—they are not promises or medical advice.</p>
+            <nav class="guide-nav" aria-label="Guide sections">
+                <a href="#daily-use">Daily use</a>
+                <a href="#calories-deficit">Calories & deficit</a>
+                <a href="#weekly-insights">Weekly insights</a>
+                <a href="#reanalyze">Reanalyze goals</a>
+                <a href="#estimation-graph">Estimation graph</a>
+            </nav>
+        </header>
+
+        <section class="card-section guide-section" id="daily-use">
+            <h2>1. A simple daily routine</h2>
+            <p>Consistent, reasonably complete entries make the summaries more useful. A missed entry is not a failure—add what you can and continue.</p>
+            <div class="guide-grid">
+                <article class="guide-card"><span class="guide-icon">1</span><div><h3>Log meals as you go</h3><p>Choose the meal and describe foods, portions, drinks, snacks, sauces, and cooking oil. Specific portions improve the AI estimate. Calories and macros are estimates, not exact measurements; edit a log if you know it needs correcting.</p></div></article>
+                <article class="guide-card"><span class="guide-icon">2</span><div><h3>Check calories and protein</h3><p>Compare the daily calories with your target and notice your protein total. Protein supports muscle repair and helps preserve muscle during weight change. Beans, lentils, eggs, dairy, tofu, fish, and meat are common sources; individual needs differ.</p></div></article>
+                <article class="guide-card"><span class="guide-icon">3</span><div><h3>Save a daily check-in</h3><p>Record weight, steps, exercise minutes, and activity notes in Daily Progress Check-In. Weigh under similar conditions when possible; ordinary day-to-day water and digestion changes can move the scale.</p></div></article>
+                <article class="guide-card"><span class="guide-icon">4</span><div><h3>Review a date or a longer range</h3><p>The dashboard date selector opens a particular day's entries. Trends and Weekly Insights let you choose a date range and look across multiple days rather than judging progress from one number.</p></div></article>
+            </div>
+        </section>
+
+        <section class="card-section guide-section" id="calories-deficit">
+            <h2>2. Calories, deficit, and weight change</h2>
+            <p>Calories are a measure of energy. Your maintenance estimate is the app's estimate of the daily energy intake that may keep weight broadly stable. Your target is calculated from your profile and goal timeline.</p>
+            <div class="guide-grid">
+                <article class="guide-card"><span class="guide-icon">−</span><div><h3>What is a calorie deficit?</h3><p>A deficit means that, averaged over time, energy intake is below energy used. In this app, the planned daily deficit is approximately maintenance calories minus target calories. The dashboard's “Deficit Created” is a rough one-day comparison of maintenance and logged intake; it can be misleading if meals were not fully logged.</p></div></article>
+                <article class="guide-card"><span class="guide-icon">≈</span><div><h3>How much deficit may affect weight?</h3><p>As a rough illustration, an average 500 kcal/day gap adds up to 3,500 kcal/week. Using the simplified estimate of about 7,700 kcal per kg, that corresponds to around 0.45 kg/week on paper:</p><span class="guide-math">500 × 7 = 3,500 kcal/week; 3,500 ÷ 7,700 ≈ 0.45 kg</span><p>This is only a simplified energy conversion—not a guaranteed rate. Real weight change varies with water, adherence, body adaptation, activity, and estimation error.</p></div></article>
+            </div>
+            <div class="guide-callout" style="margin-top: 14px;">
+                <p><strong>Use a sustainable plan, not the largest possible deficit.</strong> The app estimates a plan from your details and applies a minimum-calorie safeguard when its formula would otherwise set an especially low target. A safe, suitable target depends on the individual; do not lower your target aggressively to force faster results. Ask a qualified health professional for personal advice, especially if you have a medical condition, are pregnant, or have a history of disordered eating.</p>
+            </div>
+        </section>
+
+        <section class="card-section guide-section" id="weekly-insights">
+            <h2>3. Weekly Insights: what is in the report?</h2>
+            <p>Open <strong>Weekly Insights</strong> from the dashboard. Set the From and To dates, then update the range. The report includes both endpoints and summarizes the tracking entries found within those dates.</p>
+            <div class="guide-grid">
+                <article class="guide-card"><span class="guide-icon">↔</span><div><h3>Daily breakdown</h3><p>Each date row shows logged calories, itemized protein, steps, and weight when available. A zero-calorie day can mean no meals were recorded; it does not necessarily mean no food was eaten. Missing weight or activity entries are not interpreted as zero weight or inactivity.</p></div></article>
+                <article class="guide-card"><span class="guide-icon">AI</span><div><h3>AI analysis and estimate</h3><p>The coach reviews the daily summaries, your target, and profile context to describe patterns and offer suggestions. The report's estimated weight change uses the difference between the selected date range's total calorie target and logged intake, divided by about 7,700 kcal/kg. It is a rough estimate, not measured weight loss; missing or inaccurate food logs can distort it.</p></div></article>
+            </div>
+            <p class="guide-disclaimer">For the most useful report, log meals and check-ins consistently across the whole range. Compare the estimate with your logged weight trend and treat the AI feedback as guidance, not a diagnosis.</p>
+        </section>
+
+        <section class="card-section guide-section" id="reanalyze">
+            <h2>4. When and how to reanalyze your goals</h2>
+            <p>Choose <strong>Reanalyze Goals</strong> when your current weight, target, activity, timeline, or circumstances have changed, or when you want the plan recalculated using updated information.</p>
+            <div class="guide-grid">
+                <article class="guide-card"><span class="guide-icon">1</span><div><h3>Update your details</h3><p>Enter your current weight and desired target weight, activity level, timeline, and relevant context as accurately as possible. The app recalculates estimated maintenance calories, target calories, and the planned deficit from those details.</p></div></article>
+                <article class="guide-card"><span class="guide-icon">2</span><div><h3>Review before accepting</h3><p>Read the strategy summary and new milestones, including any note that your exact deadline may not be achievable within the app's calorie safeguards. Accept only if the plan looks appropriate; ask a qualified professional if unsure.</p></div></article>
+            </div>
+            <div class="guide-callout" style="margin-top: 14px;">
+                <p>Reanalysis updates the goal plan and future estimate; it does not erase your meal or daily tracking history. Reanalysis History lets you revisit prior saved analyses.</p>
+            </div>
+        </section>
+
+        <section class="card-section guide-section" id="estimation-graph">
+            <h2>5. How the estimated weight graph works</h2>
+            <div class="guide-grid">
+                <article class="guide-card"><span class="guide-icon">↗</span><div><h3>Projected weekly milestones</h3><p>During onboarding or reanalysis, the app calculates a calorie plan and asks the AI coach to generate weekly weight estimate points from the starting/current weight toward the estimated goal for the selected timeline. The graph connects those points to make the direction and schedule easier to view.</p></div></article>
+                <article class="guide-card"><span class="guide-icon">i</span><div><h3>How to interpret it</h3><p>The line is a planning illustration based on assumptions about calorie intake and a gradual trajectory. Actual weight does not usually fall in a perfectly straight line. Water changes, logging accuracy, activity, health, and individual response can all make real measurements differ. Use repeated weigh-ins and the Trends page to assess the longer-term pattern.</p></div></article>
+            </div>
+            <p class="guide-disclaimer">Predictions are estimates and are not a guarantee of results. The app's calorie math is simplified and cannot account for every medical or lifestyle factor.</p>
+        </section>
+
+        <div class="card-section" style="text-align: center;">
+            <h3>Ready to check your progress?</h3>
+            <p style="margin: 8px 0 16px;">Return to your dashboard to log a meal or save today's check-in.</p>
+            <a href="/onboard/dashboard?uid={{ user.uid }}" class="btn btn-primary">Go to dashboard</a>
+        </div>
+    </main>
+</body>
+</html>

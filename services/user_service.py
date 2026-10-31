@@ -22,3 +22,16 @@ def get_reanalysis_history(uid: str) -> list:
         return [d.to_dict() for d in docs]
     except Exception:
         return []
+
+def get_recent_reanalysis_history(uid: str, limit: int = 5) -> list:
+    try:
+        from google.cloud import firestore
+        docs = (
+            db.collection("users").document(uid).collection("reanalyze_logs")
+            .order_by("timestamp", direction=firestore.Query.DESCENDING)
+            .limit(limit)
+            .stream()
+        )
+        return [doc.to_dict() or {} for doc in docs]
+    except Exception:
+        return []

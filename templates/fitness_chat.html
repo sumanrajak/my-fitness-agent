@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitness Coach Chat</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body { min-height: 100dvh; }
+        .chat-shell { display: flex; flex-direction: column; min-height: min(820px, calc(100dvh - 40px)); }
+        .chat-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-bottom: 18px; border-bottom: 1px solid var(--border-color); }
+        .chat-header h1 { margin: 6px 0; }
+        .chat-subtitle { max-width: 720px; }
+        .chat-scope { margin-top: 8px; color: #93c5fd; font-size: .82rem; }
+        .chat-thread { flex: 1; min-height: 320px; max-height: 58dvh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 18px 4px; scroll-behavior: smooth; }
+        .chat-message { max-width: min(84%, 760px); padding: 13px 15px; border: 1px solid var(--border-color); border-radius: 16px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+        .chat-message.assistant { white-space: normal; }
+        .chat-message.assistant { align-self: flex-start; background: rgba(30, 41, 59, .7); border-top-left-radius: 5px; }
+        .chat-message.user { align-self: flex-end; color: white; background: rgba(59, 130, 246, .22); border-color: rgba(96, 165, 250, .4); border-top-right-radius: 5px; }
+        .chat-message.error { border-color: rgba(248, 113, 113, .55); }
+        .chat-message-label { display: block; margin-bottom: 5px; color: #93c5fd; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+        .chat-thinking { display: inline-flex; align-items: center; gap: 9px; min-height: 22px; color: #cbd5e1; font-style: normal; }
+        .chat-thinking-label { font-size: .9rem; }
+        .thinking-dots { display: inline-flex; align-items: center; gap: 4px; height: 14px; }
+        .thinking-dots span { width: 6px; height: 6px; border-radius: 50%; background: #60a5fa; opacity: .45; animation: thinking-bounce 1.1s ease-in-out infinite; }
+        .thinking-dots span:nth-child(2) { animation-delay: .15s; }
+        .thinking-dots span:nth-child(3) { animation-delay: .3s; }
+        @keyframes thinking-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: .45; } 30% { transform: translateY(-5px); opacity: 1; } }
+        @media (prefers-reduced-motion: reduce) { .thinking-dots span { animation: none; opacity: .8; } }
+        .chat-markdown > :first-child { margin-top: 0; }
+        .chat-markdown > :last-child { margin-bottom: 0; }
+        .chat-markdown p, .chat-markdown ul, .chat-markdown ol, .chat-markdown blockquote { margin: 0 0 .8em; }
+        .chat-markdown h1, .chat-markdown h2, .chat-markdown h3 { margin: .9em 0 .45em; line-height: 1.3; color: #e2e8f0; }
+        .chat-markdown h1 { font-size: 1.3em; }
+        .chat-markdown h2 { font-size: 1.15em; }
+        .chat-markdown h3 { font-size: 1.05em; }
+        .chat-markdown ul, .chat-markdown ol { padding-left: 1.5em; }
+        .chat-markdown li + li { margin-top: .3em; }
+        .chat-markdown blockquote { border-left: 3px solid #60a5fa; padding-left: .85em; color: #cbd5e1; }
+        .chat-markdown code { padding: .12em .35em; border-radius: 5px; background: rgba(15, 23, 42, .85); color: #bfdbfe; font-size: .92em; }
+        .chat-markdown pre { overflow-x: auto; margin: .8em 0; padding: 12px; border: 1px solid var(--border-color); border-radius: 9px; background: rgba(15, 23, 42, .85); }
+        .chat-markdown pre code { padding: 0; background: transparent; color: #e2e8f0; }
+        .chat-markdown a { color: #93c5fd; text-decoration: underline; text-underline-offset: 2px; }
+        .chat-compose { border-top: 1px solid var(--border-color); padding-top: 16px; }
+        .chat-compose textarea { min-height: 68px; max-height: 180px; resize: vertical; }
+        .chat-compose-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; }
+        .chat-status, .chat-disclaimer { color: var(--text-muted); font-size: .78rem; }
+        .chat-disclaimer { margin-top: 12px; line-height: 1.5; }
+        .chat-quick-prompts { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0 12px; }
+        .chat-quick-prompts button { border: 1px solid var(--border-color); border-radius: 999px; padding: 8px 11px; background: rgba(30, 41, 59, .45); color: #bfdbfe; cursor: pointer; font: inherit; font-size: .8rem; }
+        .chat-quick-prompts button:hover { border-color: var(--accent-primary); }
+        @media (max-width: 600px) {
+            body { padding: 0; }
+            .container.chat-shell { min-height: 100dvh; border-radius: 0; padding: 16px 13px max(16px, env(safe-area-inset-bottom)); }
+            .chat-header { flex-direction: column; }
+            .chat-header h1 { font-size: 1.65rem; }
+            .chat-thread { max-height: none; flex: 1; min-height: 38dvh; padding: 14px 0; }
+            .chat-message { max-width: 94%; padding: 12px 13px; font-size: .92rem; }
+            .chat-compose-row { align-items: stretch; flex-direction: column; }
+            .chat-compose-row .btn { width: 100%; min-height: 46px; }
+            .chat-compose textarea { font-size: 16px; }
+            .chat-quick-prompts { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 12px; }
+            .chat-quick-prompts button { flex: 0 0 auto; }
+        }
+    </style>
+</head>
+<body>
+    <main class="container chat-shell">
+        <header class="chat-header">
+            <div>
+                <a href="/onboard/dashboard?uid={{ user.uid }}" class="btn btn-dark">← Dashboard</a>
+                <h1>Fitness Coach Chat</h1>
+                <p class="chat-subtitle">Ask about weight management, nutrition, exercise, or your tracking trends. Answers use your profile, recent saved goal analyses, and up to the last 7 days of logs.</p>
+                <p class="chat-scope">This coach is for weight-management and health-related questions.</p>
+            </div>
+        </header>
+
+        <section id="chat-thread" class="chat-thread" aria-live="polite" aria-label="Conversation">
+            <article class="chat-message assistant">
+                <span class="chat-message-label">Fitness Coach</span>
+                Hi! I can help you think through your weight-management plan, nutrition, exercise, and recent tracking. What would you like to work on?
+            </article>
+        </section>
+
+        <div class="chat-quick-prompts" aria-label="Suggested questions">
+            <button type="button" data-prompt="Can you summarize my recent 7-day progress?">Review my last 7 days</button>
+            <button type="button" data-prompt="How should I understand my calorie target and planned deficit?">Explain my calorie target</button>
+            <button type="button" data-prompt="What are practical ways to improve my protein intake?">Help with protein</button>
+        </div>
+
+        <form id="chat-form" class="chat-compose">
+            <label for="chat-input">Your question</label>
+            <textarea id="chat-input" maxlength="1500" placeholder="Ask a weight-management or health-related question…" required></textarea>
+            <div class="chat-compose-row">
+                <span id="chat-status" class="chat-status">Responses stream in as the coach generates them.</span>
+                <button id="send-button" type="submit" class="btn btn-primary">Send message</button>
+            </div>
+            <p class="chat-disclaimer">The coach provides general information, not medical diagnosis or emergency care. For urgent symptoms, seek medical help. Avoid sharing highly sensitive personal details.</p>
+        </form>
+    </main>
+
+    <script>
+        const userId = {{ user.uid | tojson }};
+        const thread = document.getElementById('chat-thread');
+        const form = document.getElementById('chat-form');
+        const input = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
+        const status = document.getElementById('chat-status');
+        const conversation = [];
+
+        function addBubble(role, content, isError = false) {
+            const bubble = document.createElement('article');
+            bubble.className = `chat-message ${role}${isError ? ' error' : ''}`;
+            const label = document.createElement('span');
+            label.className = 'chat-message-label';
+            label.textContent = role === 'user' ? 'You' : 'Fitness Coach';
+            const text = document.createElement(role === 'assistant' ? 'div' : 'span');
+            if (role === 'assistant') text.className = 'chat-markdown';
+            text.textContent = content;
+            bubble.append(label, text);
+            thread.appendChild(bubble);
+            thread.scrollTop = thread.scrollHeight;
+            return text;
+        }
+
+        function escapeHtml(value) {
+            return value.replace(/[&<>"']/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[character]);
+        }
+
+        function renderInlineMarkdown(value) {
+            let text = escapeHtml(value);
+            const codeSpans = [];
+            text = text.replace(/`([^`]+)`/g, (_, code) => {
+                const token = `@@CODE${codeSpans.length}@@`;
+                codeSpans.push(`<code>${code}</code>`);
+                return token;
+            });
+            text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, url) =>
+                `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`);
+            text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/__(.+?)__/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/_(.+?)_/g, '<em>$1</em>');
+            return text.replace(/@@CODE(\d+)@@/g, (_, index) => codeSpans[Number(index)]);
+        }
+
+        function renderMarkdown(markdown) {
+            const lines = markdown.replace(/\r/g, '').split('\n');
+            const blocks = [];
+            let paragraph = [];
+            let listItems = [];
+            let listType = '';
+            let codeLines = [];
+            let inCode = false;
+
+            const flushParagraph = () => {
+                if (paragraph.length) blocks.push(`<p>${paragraph.map(renderInlineMarkdown).join('<br>')}</p>`);
+                paragraph = [];
+            };
+            const flushList = () => {
+                if (listItems.length) blocks.push(`<${listType}>${listItems.map(item => `<li>${renderInlineMarkdown(item)}</li>`).join('')}</${listType}>`);
+                listItems = [];
+                listType = '';
+            };
+
+            for (const line of lines) {
+                if (line.trim().startsWith('```')) {
+                    flushParagraph();
+                    flushList();
+                    if (inCode) {
+                        blocks.push(`<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
+                        codeLines = [];
+                    }
+                    inCode = !inCode;
+                    continue;
+                }
+                if (inCode) { codeLines.push(line); continue; }
+                if (!line.trim()) { flushParagraph(); flushList(); continue; }
+
+                const heading = line.match(/^\s{0,3}(#{1,3})\s+(.+)$/);
+                if (heading) {
+                    flushParagraph(); flushList();
+                    const level = heading[1].length;
+                    blocks.push(`<h${level}>${renderInlineMarkdown(heading[2])}</h${level}>`);
+                    continue;
+                }
+                const listMatch = line.match(/^\s*(?:[-*+]\s+|\d+[.)]\s+)(.+)$/);
+                if (listMatch) {
+                    flushParagraph();
+                    const nextType = /^\s*\d+[.)]\s+/.test(line) ? 'ol' : 'ul';
+                    if (listType && listType !== nextType) flushList();
+                    listType = nextType;
+                    listItems.push(listMatch[1]);
+                    continue;
+                }
+                const quote = line.match(/^\s*&gt;\s?(.*)$/);
+                if (quote) {
+                    flushParagraph(); flushList();
+                    blocks.push(`<blockquote>${renderInlineMarkdown(quote[1])}</blockquote>`);
+                    continue;
+                }
+                flushList();
+                paragraph.push(line);
+            }
+            flushParagraph();
+            flushList();
+            if (inCode) blocks.push(`<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
+            return blocks.join('');
+        }
+
+        async function sendMessage(message) {
+            const trimmed = message.trim();
+            if (!trimmed || sendButton.disabled) return;
+
+            if (conversation.length > 10) conversation.splice(0, conversation.length - 10);
+            conversation.push({ role: 'user', content: trimmed });
+            addBubble('user', trimmed);
+            input.value = '';
+            sendButton.disabled = true;
+            status.textContent = 'Coach is responding…';
+            const assistantText = addBubble('assistant', '');
+            assistantText.classList.add('chat-thinking');
+            assistantText.setAttribute('role', 'status');
+            assistantText.setAttribute('aria-label', 'Fitness Coach is thinking');
+            assistantText.innerHTML = '<span class="chat-thinking-label">Thinking</span><span class="thinking-dots" aria-hidden="true"><span></span><span></span><span></span></span>';
+            let responseText = '';
+
+            try {
+                const response = await fetch('/onboard/chat/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ uid: userId, messages: conversation })
+                });
+
+                if (!response.ok) {
+                    let detail = 'Unable to start the chat. Please try again.';
+                    try { detail = (await response.json()).detail || detail; } catch (_) {}
+                    throw new Error(detail);
+                }
+                if (!response.body) throw new Error('Streaming is not supported by this browser.');
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                while (true) {
+                    const { value, done } = await reader.read();
+                    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        const chunk = JSON.parse(line);
+                        if (chunk.error) throw new Error(chunk.error);
+                        responseText += chunk.text || '';
+                        if (chunk.text) {
+                            assistantText.classList.remove('chat-thinking');
+                            assistantText.removeAttribute('role');
+                            assistantText.removeAttribute('aria-label');
+                        }
+                        assistantText.innerHTML = renderMarkdown(responseText);
+                        thread.scrollTop = thread.scrollHeight;
+                    }
+                    if (done) break;
+                }
+                if (buffer.trim()) {
+                    const chunk = JSON.parse(buffer);
+                    if (chunk.error) throw new Error(chunk.error);
+                    responseText += chunk.text || '';
+                    if (chunk.text) {
+                        assistantText.classList.remove('chat-thinking');
+                        assistantText.removeAttribute('role');
+                        assistantText.removeAttribute('aria-label');
+                    }
+                    assistantText.innerHTML = renderMarkdown(responseText);
+                }
+                if (!responseText.trim()) throw new Error('The coach returned an empty response. Please try again.');
+                conversation.push({ role: 'assistant', content: responseText });
+                status.textContent = 'Ask another weight-management or health question.';
+            } catch (error) {
+                assistantText.closest('.chat-message').classList.add('error');
+                assistantText.classList.remove('chat-thinking');
+                assistantText.removeAttribute('role');
+                assistantText.removeAttribute('aria-label');
+                if (responseText) {
+                    assistantText.innerHTML = renderMarkdown(`${responseText}\n\nConnection interrupted. Please send your question again if you need more.`);
+                } else {
+                    assistantText.textContent = error.message;
+                }
+                if (responseText) conversation.push({ role: 'assistant', content: responseText });
+                else conversation.pop();
+                status.textContent = 'Message was not completed.';
+            } finally {
+                sendButton.disabled = false;
+                input.focus();
+            }
+        }
+
+        form.addEventListener('submit', event => {
+            event.preventDefault();
+            sendMessage(input.value);
+        });
+        input.addEventListener('keydown', event => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                form.requestSubmit();
+            }
+        });
+        document.querySelectorAll('[data-prompt]').forEach(button => {
+            button.addEventListener('click', () => sendMessage(button.dataset.prompt));
+        });
+    </script>
+</body>
+</html>
