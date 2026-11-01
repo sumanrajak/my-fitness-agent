@@ -281,6 +281,13 @@
         </div>
 
         {% if 'suman' in user.email|lower %}
+        <div class="card-section" style="margin-top: 20px; padding: 18px 20px; border: 1px solid rgba(96, 165, 250, 0.35); background: linear-gradient(120deg, rgba(30, 58, 138, 0.28), rgba(15, 23, 42, 0.82));">
+            <p style="margin: 0; color: #dbeafe; font-size: 1.15rem; font-weight: 800; text-align: center;">“Athletes don’t smoke. You are an athlete.”</p>
+            <p style="margin: 7px 0 0; color: var(--text-muted); text-align: center;">Every smoke-free choice strengthens the identity you’re building.</p>
+            <div style="margin-top: 12px; text-align: center;">
+                <a href="/onboard/athlete-buddy?uid={{ user.uid }}" class="btn btn-purple">🏃 Chat with Athlete Buddy</a>
+            </div>
+        </div>
         <div class="card-section smoke-free-hero" style="margin-top: 20px;">
             <div class="smoke-free-kicker">Your strongest decision is still counting</div>
             <div class="smoke-free-counter-wrap">
@@ -289,8 +296,8 @@
                 </div>
                 <div>
                     <h3 style="color: #d1fae5;">Smoke-free streak</h3>
-                    <p style="margin-top: 4px;">Since 31 Oct 2026, 2:36 PM</p>
-                    <div id="smoke-free-counter" data-quit-at="2026-10-31T14:36:23" data-cigarettes-per-day="12" data-cost-per-cigarette="20" class="smoke-free-counter-large">Calculating...</div>
+                    <p style="margin-top: 4px;">Since 2 Nov 2026, 1:12 AM</p>
+                    <div id="smoke-free-counter" data-quit-at="2026-11-02T01:12:34" data-cigarettes-per-day="12" data-cost-per-cigarette="20" class="smoke-free-counter-large">Calculating...</div>
                     <p class="smoke-free-pride">You chose your future over one cigarette.</p>
                 </div>
             </div>

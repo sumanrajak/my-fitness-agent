@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fitness Coach Chat</title>
+    <title>{{ chat_title | default('Fitness Coach Chat') }}</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <style>
         body { min-height: 100dvh; }
@@ -69,28 +69,34 @@
         <header class="chat-header">
             <div>
                 <a href="/onboard/dashboard?uid={{ user.uid }}" class="btn btn-dark">← Dashboard</a>
-                <h1>Fitness Coach Chat</h1>
-                <p class="chat-subtitle">Ask about weight management, nutrition, exercise, or your tracking trends. Answers use your profile, recent saved goal analyses, and up to the last 7 days of logs.</p>
-                <p class="chat-scope">This coach is for weight-management and health-related questions.</p>
+                <h1>{{ chat_title | default('Fitness Coach Chat') }}</h1>
+                <p class="chat-subtitle">{{ chat_subtitle | default('Ask about weight management, nutrition, exercise, or your tracking trends. Answers use your profile, recent saved goal analyses, and up to the last 7 days of logs.') }}</p>
+                <p class="chat-scope">{{ chat_scope | default('This coach is for weight-management and health-related questions.') }}</p>
             </div>
         </header>
 
         <section id="chat-thread" class="chat-thread" aria-live="polite" aria-label="Conversation">
             <article class="chat-message assistant">
-                <span class="chat-message-label">Fitness Coach</span>
-                Hi! I can help you think through your weight-management plan, nutrition, exercise, and recent tracking. What would you like to work on?
+                <span class="chat-message-label">{{ coach_name | default('Fitness Coach') }}</span>
+                {{ chat_greeting | default('Hi! I can help you think through your weight-management plan, nutrition, exercise, and recent tracking. What would you like to work on?') }}
             </article>
         </section>
 
         <div class="chat-quick-prompts" aria-label="Suggested questions">
-            <button type="button" data-prompt="Can you summarize my recent 7-day progress?">Review my last 7 days</button>
-            <button type="button" data-prompt="How should I understand my calorie target and planned deficit?">Explain my calorie target</button>
-            <button type="button" data-prompt="What are practical ways to improve my protein intake?">Help with protein</button>
+            {% if quick_prompts is defined %}
+                {% for prompt in quick_prompts %}
+                <button type="button" data-prompt="{{ prompt }}">{{ prompt }}</button>
+                {% endfor %}
+            {% else %}
+                <button type="button" data-prompt="Can you summarize my recent 7-day progress?">Review my last 7 days</button>
+                <button type="button" data-prompt="How should I understand my calorie target and planned deficit?">Explain my calorie target</button>
+                <button type="button" data-prompt="What are practical ways to improve my protein intake?">Help with protein</button>
+            {% endif %}
         </div>
 
         <form id="chat-form" class="chat-compose">
             <label for="chat-input">Your question</label>
-            <textarea id="chat-input" maxlength="1500" placeholder="Ask a weight-management or health-related question…" required></textarea>
+            <textarea id="chat-input" maxlength="1500" placeholder="{{ input_placeholder | default('Ask a weight-management or health-related question…') }}" required></textarea>
             <div class="chat-compose-row">
                 <span id="chat-status" class="chat-status">Responses stream in as the coach generates them.</span>
                 <button id="send-button" type="submit" class="btn btn-primary">Send message</button>
@@ -106,6 +112,7 @@
         const input = document.getElementById('chat-input');
         const sendButton = document.getElementById('send-button');
         const status = document.getElementById('chat-status');
+        const coachName = {{ coach_name | default('Fitness Coach') | tojson }};
         const conversation = [];
 
         function addBubble(role, content, isError = false) {
@@ -113,7 +120,7 @@
             bubble.className = `chat-message ${role}${isError ? ' error' : ''}`;
             const label = document.createElement('span');
             label.className = 'chat-message-label';
-            label.textContent = role === 'user' ? 'You' : 'Fitness Coach';
+            label.textContent = role === 'user' ? 'You' : coachName;
             const text = document.createElement(role === 'assistant' ? 'div' : 'span');
             if (role === 'assistant') text.className = 'chat-markdown';
             text.textContent = content;
@@ -223,12 +230,12 @@
             const assistantText = addBubble('assistant', '');
             assistantText.classList.add('chat-thinking');
             assistantText.setAttribute('role', 'status');
-            assistantText.setAttribute('aria-label', 'Fitness Coach is thinking');
+            assistantText.setAttribute('aria-label', `${coachName} is thinking`);
             assistantText.innerHTML = '<span class="chat-thinking-label">Thinking</span><span class="thinking-dots" aria-hidden="true"><span></span><span></span><span></span></span>';
             let responseText = '';
 
             try {
-                const response = await fetch('/onboard/chat/stream', {
+                const response = await fetch({{ chat_endpoint | default('/onboard/chat/stream') | tojson }}, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'same-origin',
@@ -278,7 +285,7 @@
                 }
                 if (!responseText.trim()) throw new Error('The coach returned an empty response. Please try again.');
                 conversation.push({ role: 'assistant', content: responseText });
-                status.textContent = 'Ask another weight-management or health question.';
+                status.textContent = {{ ('Keep building your athlete identity—what would you like to work on next?' if chat_title is defined and chat_title == 'Athlete Buddy' else 'Ask another weight-management or health question.') | tojson }};
             } catch (error) {
                 assistantText.closest('.chat-message').classList.add('error');
                 assistantText.classList.remove('chat-thinking');
