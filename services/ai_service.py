@@ -186,7 +186,7 @@ def stream_athlete_buddy_chat(
     private_context = {
         **fitness_context,
         "smoking_habit_before_quitting": "about 12 cigarettes per day; estimated cost Rs 20 per cigarette",
-        "quit_start_local": "2026-11-02 01:12:34",
+        "quit_start_local": "2026-11-26 10:31:39",
         "time_since_quit_at_request": {"days": days, "hours": hours, "minutes": minutes},
     }
     system_instruction = """You are Athlete Buddy, Suman's thoughtful, warm, and intellectually curious personal coach.

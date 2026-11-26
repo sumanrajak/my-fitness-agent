@@ -152,7 +152,7 @@ async def athlete_buddy_stream(payload: ChatRequest, request: Request):
     recent_logs = get_logs_in_range(payload.uid, start_date, end_date)
     recent_logs.sort(key=lambda entry: entry.get("date", ""), reverse=True)
     reanalysis_history = get_recent_reanalysis_history(payload.uid)
-    quit_at = datetime(2026, 11, 2, 1, 12, 34)
+    quit_at = datetime(2026, 11, 26, 10, 31, 39)
     smoke_free_seconds = max(0, int((end_dt - quit_at).total_seconds()))
 
     def token_stream():
@@ -501,7 +501,7 @@ async def craving_support(uid: str, note: str = ""):
     weekly_progress = get_logs_in_range(uid, start_date, end_date)
     weekly_progress.sort(key=lambda entry: entry.get("date", ""))
 
-    quit_at = datetime.strptime("2026-11-02 01:12:34", "%Y-%m-%d %H:%M:%S")
+    quit_at = datetime.strptime("2026-11-26 10:31:39", "%Y-%m-%d %H:%M:%S")
     elapsed_seconds = max(0, int((today - quit_at).total_seconds()))
     smoke_free_days = elapsed_seconds // 86400
     smoke_free_hours = elapsed_seconds // 3600

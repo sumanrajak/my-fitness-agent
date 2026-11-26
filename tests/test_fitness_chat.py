@@ -88,7 +88,7 @@ class FitnessChatValidationTests(unittest.TestCase):
             ))
 
         self.assertEqual(len(chunks), 2)
-        self.assertIn("2026-11-02 01:12:34", captured["contents"])
+        self.assertIn("2026-11-26 10:31:39", captured["contents"])
         self.assertIn("12 cigarettes per day", captured["contents"])
         self.assertIn("athlete identity", captured["config"].system_instruction)
 
